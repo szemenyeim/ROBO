@@ -1,0 +1,6 @@
+classes= 4
+train=./data/RoboCup/train.txt
+valid=./data/RoboCup/test.txt
+names=data/robo.names
+backup=backup/
+eval=coco
