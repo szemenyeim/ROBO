@@ -164,10 +164,10 @@ class YOLOLayer(nn.Module):
 
         # Add offset and scale with anchors
         pred_boxes = FloatTensor(prediction[..., :4].shape)
-        pred_boxes[..., 0] = x.data + grid_x
-        pred_boxes[..., 1] = y.data + grid_y
-        pred_boxes[..., 2] = torch.exp(w.data) * anchor_w
-        pred_boxes[..., 3] = torch.exp(h.data) * anchor_h
+        pred_boxes[..., 0] = x.detach() + grid_x
+        pred_boxes[..., 1] = y.detach() + grid_y
+        pred_boxes[..., 2] = torch.exp(w.detach()) * anchor_w
+        pred_boxes[..., 3] = torch.exp(h.detach()) * anchor_h
 
         # Training
         if targets is not None:
@@ -178,11 +178,11 @@ class YOLOLayer(nn.Module):
                 self.ce_loss = self.ce_loss.cuda()
 
             nGT, nCorrect, mask, conf_mask, tx, ty, tw, th, tconf, tcls = build_targets(
-                pred_boxes=pred_boxes.cpu().data,
-                pred_conf=pred_conf.cpu().data,
-                pred_cls=pred_cls.cpu().data,
-                target=targets.cpu().data,
-                anchors=scaled_anchors.cpu().data,
+                pred_boxes=pred_boxes.cpu().detach(),
+                pred_conf=pred_conf.cpu().detach(),
+                pred_cls=pred_cls.cpu().detach(),
+                target=targets.cpu().detach(),
+                anchors=scaled_anchors.cpu().detach(),
                 num_anchors=nA,
                 num_classes=self.num_classes,
                 grid_size_y=nGy,
@@ -196,16 +196,16 @@ class YOLOLayer(nn.Module):
             precision = float(nCorrect / nProposals)
 
             # Handle masks
-            mask = Variable(mask.type(ByteTensor))
-            conf_mask = Variable(conf_mask.type(ByteTensor))
+            mask = mask.type(ByteTensor)
+            conf_mask = conf_mask.type(ByteTensor)
 
             # Handle target variables
-            tx = Variable(tx.type(FloatTensor), requires_grad=False)
-            ty = Variable(ty.type(FloatTensor), requires_grad=False)
-            tw = Variable(tw.type(FloatTensor), requires_grad=False)
-            th = Variable(th.type(FloatTensor), requires_grad=False)
-            tconf = Variable(tconf.type(FloatTensor), requires_grad=False)
-            tcls = Variable(tcls.type(LongTensor), requires_grad=False)
+            tx = tx.type(FloatTensor)
+            ty = ty.type(FloatTensor)
+            tw = tw.type(FloatTensor)
+            th = th.type(FloatTensor)
+            tconf = tconf.type(FloatTensor)
+            tcls = tcls.type(LongTensor)
 
             # Get conf mask where gt and where there is no gt
             conf_mask_true = mask
