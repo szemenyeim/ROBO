@@ -51,8 +51,8 @@ def write_anchors_to_file(centroids, X, anchor_file):
     print(anchors.shape)
 
     for i in range(anchors.shape[0]):
-        anchors[i][0] = round(anchors[i][0]*416)
-        anchors[i][1] = round(anchors[i][1]*416)
+        anchors[i][0] = round(anchors[i][0]*640)
+        anchors[i][1] = round(anchors[i][1]*480)
 
     widths = anchors[:, 0]
     sorted_indices = np.argsort(widths)
