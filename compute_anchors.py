@@ -51,8 +51,8 @@ def write_anchors_to_file(centroids, X, anchor_file):
     print(anchors.shape)
 
     for i in range(anchors.shape[0]):
-        anchors[i][0] = round(anchors[i][0]*640)
-        anchors[i][1] = round(anchors[i][1]*480)
+        anchors[i][0] = round(anchors[i][0]*416)
+        anchors[i][1] = round(anchors[i][1]*416)
 
     widths = anchors[:, 0]
     sorted_indices = np.argsort(widths)
@@ -108,9 +108,9 @@ def kmeans(X, centroids, eps, anchor_file):
 
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-filelist', default='C:/Users/szeme/Documents/projects/PyTorch-YOLOv3/data/RoboCup/train.txt',
+    parser.add_argument('-filelist', default='./data/trafficYolo/train.txt',
                         help='path to filelist\n')
-    parser.add_argument('-output_dir', default='C:/Users/szeme/Documents/projects/PyTorch-YOLOv3/data/RoboCup/anchors', type=str,
+    parser.add_argument('-output_dir', default='./data/trafficYolo/anchors', type=str,
                         help='Output anchor directory\n')
     parser.add_argument('-num_clusters', default=3, type=int,
                         help='number of clusters\n')
