@@ -144,14 +144,16 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
     for image_i, image_pred in enumerate(prediction):
         # Filter out confidence scores below threshold
         conf_mask = (image_pred[:, 4] >= conf_thres).squeeze()
+        classPred = torch.cat((torch.zeros(48),torch.ones(48),2*torch.ones(48),3*torch.ones(96))).cuda().unsqueeze(1)
+        classPred = classPred[conf_mask]
         image_pred = image_pred[conf_mask]
         # If none are remaining => process next image
         if not image_pred.size(0):
             continue
         # Get score and class with highest confidence
-        class_conf, class_pred = torch.max(image_pred[:, 5 : 5 + num_classes], 1, keepdim=True)
+        class_conf = image_pred[:, 4].unsqueeze(1)
         # Detections ordered as (x1, y1, x2, y2, obj_conf, class_conf, class_pred)
-        detections = torch.cat((image_pred[:, :5], class_conf.float(), class_pred.float()), 1)
+        detections = torch.cat((image_pred[:, :5], class_conf.float(), classPred.float()), 1)
         # Iterate through all predicted classes
         unique_labels = detections[:, -1].cpu().unique()
         if prediction.is_cuda:
@@ -183,13 +185,35 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
 
     return output
 
+def pruneModel(params, ratio = 0.02):
+    i = 0
+    indices = []
+    for param in params:
+        if param.dim() > 1:
+            thresh = torch.max(torch.abs(param)) * ratio
+            print("Pruned %f%% of the weights" % (
+            float(torch.sum(torch.abs(param) < thresh)) / float(torch.sum(param != 0)) * 100))
+            param[torch.abs(param) < thresh] = 0
+            indices.append(torch.abs(param) < thresh)
+            i += 1
+
+    return indices
+
+def count_zero_weights(model):
+    nonzeroWeights = 0
+    totalWeights = 0
+    for param in model.parameters():
+        max = torch.max(torch.abs(param))
+        nonzeroWeights += (torch.abs(param) < max*0.02).sum().float()
+        totalWeights += param.numel()
+    return float(nonzeroWeights/totalWeights)
 
 def build_targets(
-    pred_boxes, pred_conf, pred_cls, target, anchors, num_anchors, num_classes, grid_size_y, grid_size_x, ignore_thres, img_dim
+    pred_boxes, pred_conf, target, anchors, num_anchors, num_classes, grid_size_y, grid_size_x, ignore_thres, img_dim
 ):
     nB = target.size(0)
     nA = num_anchors
-    nC = num_classes
+    #nC = num_classes
     nGx = grid_size_x
     nGy = grid_size_y
     mask = torch.zeros(nB, nA, nGy, nGx)
@@ -199,7 +223,7 @@ def build_targets(
     tw = torch.zeros(nB, nA, nGy, nGx)
     th = torch.zeros(nB, nA, nGy, nGx)
     tconf = torch.ByteTensor(nB, nA, nGy, nGx).fill_(0)
-    tcls = torch.ByteTensor(nB, nA, nGy, nGx, nC).fill_(0)
+    corr = torch.ByteTensor(nB, nA, nGy, nGx).fill_(0)
 
     nGT = 0
     nCorrect = 0
@@ -209,6 +233,8 @@ def build_targets(
                 continue
             nGT += 1
             # Convert to position relative to box
+            # One-hot encoding of label
+            target_label = int(target[b, t, 0])
             gx = target[b, t, 1] * nGx
             gy = target[b, t, 2] * nGy
             gw = target[b, t, 3] * nGx
@@ -216,16 +242,20 @@ def build_targets(
             # Get grid box indices
             gi = int(gx)
             gj = int(gy)
-            # Get shape of gt box
-            gt_box = torch.FloatTensor(np.array([0, 0, gw, gh])).unsqueeze(0)
-            # Get shape of anchor box
-            anchor_shapes = torch.FloatTensor(np.concatenate((np.zeros((len(anchors), 2)), np.array(anchors)), 1))
-            # Calculate iou between gt and anchor shapes
-            anch_ious = bbox_iou(gt_box, anchor_shapes)
-            # Where the overlap is larger than threshold set mask to zero (ignore)
-            conf_mask[b, anch_ious > ignore_thres, gj, gi] = 0
-            # Find the best matching anchor box
-            best_n = np.argmax(anch_ious)
+
+            if target_label == 3:
+                # Get shape of gt box
+                gt_box = torch.FloatTensor(np.array([0, 0, gw, gh])).unsqueeze(0)
+                # Get shape of anchor box
+                anchor_shapes = torch.FloatTensor(np.concatenate((np.zeros((2, 2)), np.array(anchors[-2:])), 1))
+                # Calculate iou between gt and anchor shapes
+                anch_ious = torch.cat((torch.zeros((3)), bbox_iou(gt_box, anchor_shapes)), 0)
+                # Where the overlap is larger than threshold set mask to zero (ignore)
+                conf_mask[b, anch_ious > ignore_thres, gj, gi] = 0
+                # Find the best matching anchor box
+                best_n = np.argmax(anch_ious)
+            else:
+                best_n = target_label
             # Get ground truth box
             gt_box = torch.FloatTensor(np.array([gx, gy, gw, gh])).unsqueeze(0)
             # Get the best prediction
@@ -239,21 +269,29 @@ def build_targets(
             # Width and height
             tw[b, best_n, gj, gi] = math.log(gw / anchors[best_n][0] + 1e-16)
             th[b, best_n, gj, gi] = math.log(gh / anchors[best_n][1] + 1e-16)
-            # One-hot encoding of label
-            target_label = int(target[b, t, 0])
-            tcls[b, best_n, gj, gi, target_label] = 1
+            #tcls[b, best_n, gj, gi, target_label] = 1
             tconf[b, best_n, gj, gi] = 1
 
             # Calculate iou between ground truth and best matching prediction
             iou = bbox_iou(gt_box, pred_box, x1y1x2y2=False)
-            pred_label = torch.argmax(pred_cls[b, best_n, gj, gi])
             score = pred_conf[b, best_n, gj, gi]
-            if iou > 0.5 and pred_label == target_label and score > 0.5:
+            if (target_label != 3 or iou > 0.5) and score > 0.5:
                 nCorrect += 1
+                corr[b, best_n, gj, gi] = 1
 
-    return nGT, nCorrect, mask, conf_mask, tx, ty, tw, th, tconf, tcls
+    return nGT, nCorrect, mask, conf_mask, tx, ty, tw, th, tconf, corr
 
 
 def to_categorical(y, num_classes):
     """ 1-hot encodes a tensor """
     return torch.from_numpy(np.eye(num_classes, dtype="uint8")[y])
+
+def bbox_dist(box1,boxes,scale):
+    distances = np.array([])
+    for box2 in boxes:
+        cent1x = (box1[0] + box1[2]) / 2
+        cent1y = (box1[1] + box1[3]) / 2
+        cent2x = (box2[0] + box2[2]) / 2
+        cent2y = (box2[1] + box2[3]) / 2
+        distances = np.append(distances,(scale - np.sqrt(pow(cent1x-cent2x,2) + pow(cent1y-cent2y,2)))/scale)
+    return distances

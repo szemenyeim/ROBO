@@ -18,13 +18,13 @@ from skimage.color import rgb2yuv
 import sys
 
 class ImageFolder(Dataset):
-    def __init__(self, folder_path, img_size=(512,640), type = '%s/*.*', pad=(16,0)):
+    def __init__(self, folder_path, img_size=(384,512), type = '%s/*.*', pad=(0,0)):
         self.files = sorted(glob.glob(type % folder_path))
         self.img_shape = img_size
         self.pad = pad
         self.transform = transforms.Compose([
-            transforms.Pad(pad, 128),
-            # transforms.Resize(img_size),
+            # transforms.Pad(pad, 128),
+            transforms.Resize(img_size),
             # transforms.ColorJitter(0.2,0.2,0.2,0.2),
             transforms.ToTensor(),
             # transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
@@ -43,7 +43,7 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, list_path, img_size=(512,640), pad=(16,0)):
+    def __init__(self, list_path, img_size=(384,512), pad=(0,0)):
         with open(list_path, 'r') as file:
             self.img_files = file.readlines()
         self.label_files = [path.replace('images', 'labels').replace('.png', '.txt').replace('.jpg', '.txt') for path in self.img_files]
@@ -51,8 +51,8 @@ class ListDataset(Dataset):
         self.max_objects = 50
         self.pad = pad
         self.transform = transforms.Compose([
-            transforms.Pad(pad,128),
-            #transforms.Resize(img_size),
+            #transforms.Pad(pad,128),
+            transforms.Resize(img_size),
             #transforms.ColorJitter(0.2,0.2,0.2,0.2),
             transforms.ToTensor(),
             #transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])

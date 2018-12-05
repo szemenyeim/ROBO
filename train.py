@@ -20,6 +20,106 @@ import torch.optim as optim
 
 import progressbar
 
+def add_dimension_glasso(var, dim=0):
+    return var.pow(2).sum(dim=dim).add(1e-8).pow(1/2.).sum()
+
+def get_glasso_term(model):
+    loss = 0
+    for param in model.parameters():
+        if param.data.dim() == 4:
+            loss += add_dimension_glasso(param,0)
+            loss += add_dimension_glasso(param,1)
+    return loss
+
+def l1reg(model):
+    regularization_loss = 0
+    for param in model.parameters():
+        regularization_loss += torch.sum(torch.abs(param))
+    return regularization_loss
+
+def train(epoch,bestLoss, indices = None):
+    #############
+    ####TRAIN####
+    #############
+
+    lossx = 0
+    lossy = 0
+    lossw = 0
+    lossh = 0
+    lossconf = 0
+    lossreg = 0
+    losstotal = 0
+    recall = 0
+    prec = 0
+
+    model.train()
+
+    scheduler.step()
+
+    bar = progressbar.ProgressBar(0, len(trainloader), redirect_stdout=False)
+
+    for batch_i, (_, imgs, targets) in enumerate(trainloader):
+        imgs = imgs.type(Tensor)
+        targets = targets.type(Tensor)
+
+        optimizer.zero_grad()
+
+        loss = model(imgs, targets)
+        reg = decay * l1reg(model)
+        loss += reg
+
+        loss.backward()
+
+        if indices is not None:
+            pIdx = 0
+            for param in model.parameters():
+                if param.dim() > 1:
+                    if param.grad is not None:
+                        param.grad[indices[pIdx]] = 0
+                    pIdx += 1
+
+        optimizer.step()
+        bar.update(batch_i)
+
+        lossx += model.losses["x"]
+        lossy += model.losses["y"]
+        lossw += model.losses["w"]
+        lossh += model.losses["h"]
+        lossconf += model.losses["conf"]
+        lossreg += reg.item()
+        losstotal += loss.item()
+        recall += model.losses["recall"]
+        prec += model.losses["precision"]
+
+        model.seen += imgs.size(0)
+    bar.finish()
+    prune = count_zero_weights(model)
+    print(
+        "[Epoch Train %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, pruned %f, total %f, recall: %.5f, precision: %.5f]"
+        % (
+            epoch + 1,
+            opt.epochs,
+            lossx / float(len(trainloader)),
+            lossy / float(len(trainloader)),
+            lossw / float(len(trainloader)),
+            lossh / float(len(trainloader)),
+            lossconf / float(len(trainloader)),
+            lossreg / float(len(trainloader)),
+            prune,
+            losstotal / float(len(trainloader)),
+            recall / float(len(trainloader)),
+            prec / float(len(trainloader)),
+        )
+    )
+
+    name = "best" if indices is None else "pruned"
+
+    if bestLoss < (recall + prec):
+        bestLoss = (recall + prec)
+        model.save_weights("%s/%s.weights" % (opt.checkpoint_dir,name))
+
+    return bestLoss
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -33,7 +133,7 @@ if __name__ == '__main__':
     parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
     parser.add_argument("--nms_thres", type=float, default=0.4, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
-    parser.add_argument("--img_size", type=int, default=(512,640), help="size of each image dimension")
+    parser.add_argument("--img_size", type=int, default=(384,512), help="size of each image dimension")
     parser.add_argument("--checkpoint_interval", type=int, default=10, help="interval between saving model weights")
     parser.add_argument(
         "--checkpoint_dir", type=str, default="checkpoints", help="directory where model checkpoints are saved"
@@ -57,6 +157,7 @@ if __name__ == '__main__':
     # Get data configuration
     data_config = parse_data_config(opt.data_config_path)
     train_path = data_config["train"]
+    val_path = data_config["valid"]
 
     # Get hyper parameters
     hyperparams = parse_model_config(opt.model_config_path)[0]
@@ -69,97 +170,94 @@ if __name__ == '__main__':
     model = Darknet(opt.model_config_path,img_size=opt.img_size)
     # model.load_weights(opt.weights_path)
     model.apply(weights_init_normal)
+    print(count_zero_weights(model))
 
     if cuda:
         model = model.cuda()
 
-    model.train()
+    bestLoss = 0
 
     # Get dataloader
-    dataloader = torch.utils.data.DataLoader(
+    trainloader = torch.utils.data.DataLoader(
         ListDataset(train_path,img_size=opt.img_size), batch_size=opt.batch_size, shuffle=True, num_workers=opt.n_cpu
+    )
+    valLoader = torch.utils.data.DataLoader(
+        ListDataset(val_path,img_size=opt.img_size), batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu
     )
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()))
+    optimizer = torch.optim.Adam(model.parameters())
+    #optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()),lr=learning_rate,momentum=momentum,weight_decay=decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,50)
-    #optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()),lr=learning_rate,
-                                #momentum=momentum,weight_decay=decay)
 
     for epoch in range(opt.epochs):
-        lossx = 0
+        bestLoss = train(epoch,bestLoss)
+
+
+        #############
+        #####VAL#####
+        #############
+        '''lossx = 0
         lossy = 0
         lossw = 0
         lossh = 0
         lossconf = 0
-        losscls = 0
+        lossreg = 0
         losstotal = 0
         recall = 0
         prec = 0
 
-        scheduler.step()
+        model.eval()
 
-        bar = progressbar.ProgressBar(0, len(dataloader), redirect_stdout=False)
+        bar = progressbar.ProgressBar(0, len(valLoader), redirect_stdout=False)
 
-        for batch_i, (_, imgs, targets) in enumerate(dataloader):
-            imgs = Variable(imgs.type(Tensor))
-            targets = Variable(targets.type(Tensor), requires_grad=False)
+        for batch_i, (_, imgs, targets) in enumerate(valLoader):
+            with torch.no_grad():
+                imgs = imgs.type(Tensor)
+                targets = targets.type(Tensor)
 
-            optimizer.zero_grad()
+                loss = model(imgs, targets)
+                reg = decay*get_glasso_term(model)
+                loss += reg
 
-            loss = model(imgs, targets)
+                bar.update(batch_i)
 
-            loss.backward()
-            optimizer.step()
-            bar.update(batch_i)
+                lossx += model.losses["x"]
+                lossy += model.losses["y"]
+                lossw += model.losses["w"]
+                lossh += model.losses["h"]
+                lossconf += model.losses["conf"]
+                lossreg += reg.item()
+                losstotal += loss.item()
+                recall += model.losses["recall"]
+                prec += model.losses["precision"]
 
-            '''print(
-                "[Epoch %d/%d, Batch %d/%d] [Losses: x %f, y %f, w %f, h %f, conf %f, cls %f, total %f, recall: %.5f, precision: %.5f]"
-                % (
-                    epoch+1,
-                    opt.epochs,
-                    batch_i+1,
-                    len(dataloader),
-                    model.losses["x"],
-                    model.losses["y"],
-                    model.losses["w"],
-                    model.losses["h"],
-                    model.losses["conf"],
-                    model.losses["cls"],
-                    loss.item(),
-                    model.losses["recall"],
-                    model.losses["precision"],
-                )
-            )'''
-
-            lossx += model.losses["x"]
-            lossy += model.losses["y"]
-            lossw += model.losses["w"]
-            lossh += model.losses["h"]
-            lossconf += model.losses["conf"]
-            losscls += model.losses["cls"]
-            losstotal += loss.item()
-            recall += model.losses["recall"]
-            prec += model.losses["precision"]
-
-            model.seen += imgs.size(0)
         bar.finish()
         print(
-            "[Epoch %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, cls %f, total %f, recall: %.5f, precision: %.5f]"
+            "[Epoch Val %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, total %f, recall: %.5f, precision: %.5f]"
             % (
-                epoch+1,
+                epoch + 1,
                 opt.epochs,
-                lossx / float(len(dataloader)),
-                lossy / float(len(dataloader)),
-                lossw / float(len(dataloader)),
-                lossh / float(len(dataloader)),
-                lossconf / float(len(dataloader)),
-                losscls / float(len(dataloader)),
-                losstotal / float(len(dataloader)),
-                recall / float(len(dataloader)),
-                prec / float(len(dataloader)),
+                lossx / float(len(valLoader)),
+                lossy / float(len(valLoader)),
+                lossw / float(len(valLoader)),
+                lossh / float(len(valLoader)),
+                lossconf / float(len(valLoader)),
+                lossreg / float(len(valLoader)),
+                losstotal / float(len(valLoader)),
+                recall / float(len(valLoader)),
+                prec / float(len(valLoader)),
             )
-        )
-        if epoch+1 % opt.checkpoint_interval == 0:
-            model.save_weights("%s/%d.weights" % (opt.checkpoint_dir, epoch))
+        )'''
+
+    model.load_weights("%s/best.weights" % opt.checkpoint_dir)
+    with torch.no_grad():
+        indices = pruneModel(model.parameters())
+
+    print("Finetuning")
+
+    bestLoss = 0
+
+    for epoch in range(10):
+        bestLoss = train(epoch, bestLoss, indices)

@@ -15,19 +15,20 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torch.autograd import Variable
+import progressbar
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image_folder', type=str, default='C:/Users/szeme/Documents/projects/UERoboCup/TrainingSetGenerator/Saved/Screenshots/Windows/', help='path to dataset')
+    parser.add_argument('--image_folder', type=str, default='../Data/RoboCup/Test', help='path to dataset')
     parser.add_argument('--config_path', type=str, default='config/robo-down-small.cfg', help='path to model config file')
-    parser.add_argument('--weights_path', type=str, default='checkpoints/90.weights', help='path to weights file')
+    parser.add_argument('--weights_path', type=str, default='checkpoints/pruned.weights', help='path to weights file')
     parser.add_argument('--class_path', type=str, default='data/robo.names', help='path to class label file')
     parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
     parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold for non-maximum suppression')
     parser.add_argument('--batch_size', type=int, default=64, help='size of the batches')
     parser.add_argument('--n_cpu', type=int, default=4, help='number of cpu threads to use during batch generation')
-    parser.add_argument('--img_size', type=int, default=(512,640), help='size of each image dimension')
+    parser.add_argument('--img_size', type=int, default=(384,512), help='size of each image dimension')
     parser.add_argument('--use_cuda', type=bool, default=True, help='whether to use cuda if available')
     opt = parser.parse_args()
     print(opt)
@@ -39,6 +40,8 @@ if __name__ == '__main__':
     # Set up model
     model = Darknet(opt.config_path, img_size=opt.img_size)
     model.load_weights(opt.weights_path)
+
+    print(count_zero_weights(model))
 
     if cuda:
         model.cuda()
@@ -58,7 +61,7 @@ if __name__ == '__main__':
     img_detections = [] # Stores detections for each image index
 
     print ('\nPerforming object detection:')
-    prev_time = time.time()
+    bar = progressbar.ProgressBar(0, len(dataloader), redirect_stdout=False)
     for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
         # Configure input
         input_imgs = Variable(input_imgs.type(Tensor))
@@ -70,28 +73,24 @@ if __name__ == '__main__':
 
 
         # Log progress
-        current_time = time.time()
-        inference_time = datetime.timedelta(seconds=current_time - prev_time)
-        prev_time = current_time
-        print ('\t+ Batch %d, Inference Time: %s' % (batch_i, inference_time))
+        bar.update(batch_i)
 
         # Save image and detections
         imgs.extend(img_paths)
         img_detections.extend(detections)
 
-
+    bar.finish()
     print ('\nSaving images:')
     # Iterate through images and save plot of detections
+    bar = progressbar.ProgressBar(0, len(imgs), redirect_stdout=False)
     for img_i, (path, detections) in enumerate(zip(imgs, img_detections)):
-
-        print ("(%d) Image: '%s'" % (img_i, path))
 
         # Create plot
         img = np.array(Image.open(path).convert('RGB'))
 
         # The amount of padding that was added
         pad_x = 0
-        pad_y = 32
+        pad_y = 0
         # Image height and width after padding is removed
         unpad_h = opt.img_size[0] - pad_y
         unpad_w = opt.img_size[1] - pad_x
@@ -100,18 +99,16 @@ if __name__ == '__main__':
         if detections is not None:
             unique_labels = detections[:, -1].cpu().unique()
             n_cls_preds = len(unique_labels)
-            bbox_colors = [(255,0,0),(255,255,0),(0,0,255),(255,0,255)]
+            bbox_colors = [(255,0,0),(255,0,255),(0,0,255),(255,255,0)]
             for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
-
-                print ('\t+ Label: %s, Conf: %.5f' % (classes[int(cls_pred)], cls_conf.item()))
 
                 # Rescale coordinates to original dimensions
                 box_h = ((y2 - y1) / unpad_h) * img.shape[0]
                 box_w = ((x2 - x1) / unpad_w) * img.shape[1]
-                y1 = (y1 - pad_y // 2)
-                x1 = (x1 - pad_x // 2) * 0.9
-                y2 = (y2 - pad_y // 2)
-                x2 = (x2 - pad_x // 2) * 0.9
+                y1 = (y1 - pad_y // 2) * 1.25
+                x1 = (x1 - pad_x // 2) * 1.25
+                y2 = (y2 - pad_y // 2) * 1.25
+                x2 = (x2 - pad_x // 2) * 1.25
 
                 color = bbox_colors[int(cls_pred)]
                 # Create a Rectangle patch
@@ -120,3 +117,5 @@ if __name__ == '__main__':
         # Save generated image with detections
         img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
         cv2.imwrite('output/%d.png' % (img_i),img)
+        bar.update(img_i)
+    bar.finish()

@@ -9,6 +9,7 @@ import argparse
 import numpy as np
 import sys
 import os
+from scipy.cluster.vq import kmeans, whiten
 import shutil
 import random
 import math
@@ -51,25 +52,24 @@ def write_anchors_to_file(centroids, X, anchor_file):
     print(anchors.shape)
 
     for i in range(anchors.shape[0]):
-        anchors[i][0] = round(anchors[i][0]*640)
-        anchors[i][1] = round(anchors[i][1]*480)
+        anchors[i][0] = round(anchors[i][0]*512)
+        anchors[i][1] = round(anchors[i][1]*384)
 
-    widths = anchors[:, 0]
-    sorted_indices = np.argsort(widths)
 
-    print('Anchors = ', anchors[sorted_indices])
+    print('Anchors = ', anchors)
 
-    for i in sorted_indices[:-1]:
+    for i in range(anchors.shape[0]-1):
         f.write('%0.2f,%0.2f, ' % (anchors[i, 0], anchors[i, 1]))
 
     # there should not be comma after last anchor, that's why
-    f.write('%0.2f,%0.2f\n' % (anchors[sorted_indices[-1:], 0], anchors[sorted_indices[-1:], 1]))
+    f.write('%0.2f,%0.2f\n' % (anchors[-1, 0], anchors[-1, 1]))
 
-    f.write('%f\n' % (avg_IOU(X, centroids)))
+    if X is not None:
+        f.write('%f\n' % (avg_IOU(X, centroids)))
     print()
 
 
-def kmeans(X, centroids, eps, anchor_file):
+def kmeans2(X, centroids, eps, anchor_file):
     N = X.shape[0]
     iterations = 0
     k, dim = centroids.shape
@@ -108,14 +108,16 @@ def kmeans(X, centroids, eps, anchor_file):
 
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-filelist', default='./data/trafficYolo/train.txt',
+    parser.add_argument('-filelist', default='./data/RoboCup/train.txt',
                         help='path to filelist\n')
-    parser.add_argument('-output_dir', default='./data/trafficYolo/anchors', type=str,
+    parser.add_argument('-output_dir', default='./data/RoboCup/anchors', type=str,
                         help='Output anchor directory\n')
     parser.add_argument('-num_clusters', default=3, type=int,
                         help='number of clusters\n')
 
     args = parser.parse_args()
+
+    nclass = 4
 
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
@@ -125,6 +127,8 @@ def main(argv):
     lines = [line.rstrip('\n') for line in f.readlines()]
 
     annotation_dims = []
+    for i in range(nclass):
+        annotation_dims.append([])
 
     size = np.zeros((1, 1, 3))
     for line in lines:
@@ -139,10 +143,24 @@ def main(argv):
         f2 = open(line)
         for line in f2.readlines():
             line = line.rstrip('\n')
-            w, h, _ = line.split(' ')[3:]
+            c, _, _, w, h, _ = line.split(' ')
             # print(w,h)
-            annotation_dims.append(tuple(map(float, (w, h))))
-    annotation_dims = np.array(annotation_dims)
+            annotation_dims[int(c)].append(tuple(map(float, (w, h))))
+
+    anchors = np.zeros([nclass+1,2])
+    for i in range(nclass):
+        dims = np.array(annotation_dims[i])
+        if i == nclass-1:
+            whitened = whiten(dims)
+            book = np.array((whitened[0], whitened[2]))
+            anchors[-2:] = kmeans(dims, 2)[0]
+        else:
+            anchors[i] = np.mean(dims,0)
+    anchor_file = join(args.output_dir, 'anchors%d.txt' % (args.num_clusters))
+    write_anchors_to_file(anchors,None,anchor_file)
+
+
+    '''annotation_dims = np.array(annotation_dims)
 
     eps = 0.005
 
@@ -159,7 +177,7 @@ def main(argv):
         indices = [random.randrange(annotation_dims.shape[0]) for i in range(args.num_clusters)]
         centroids = annotation_dims[indices]
         kmeans(annotation_dims, centroids, eps, anchor_file)
-        print('centroids.shape', centroids.shape)
+        print('centroids.shape', centroids.shape)'''
 
 
 if __name__ == "__main__":
