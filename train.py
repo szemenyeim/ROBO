@@ -54,7 +54,7 @@ def train(epoch,bestLoss, indices = None):
 
     model.train()
 
-    #scheduler.step()
+    scheduler.step()
 
     bar = progressbar.ProgressBar(0, len(trainloader), redirect_stdout=False)
 
@@ -65,18 +65,18 @@ def train(epoch,bestLoss, indices = None):
         optimizer.zero_grad()
 
         loss = model(imgs, targets)
-        #reg = decay * l1reg(model)
-        #loss += reg
+        reg = decay * l1reg(model)
+        loss += reg
 
         loss.backward()
 
-        '''if indices is not None:
+        if indices is not None:
             pIdx = 0
             for param in model.parameters():
                 if param.dim() > 1:
                     if param.grad is not None:
                         param.grad[indices[pIdx]] = 0
-                    pIdx += 1'''
+                    pIdx += 1
 
         optimizer.step()
         bar.update(batch_i)
@@ -86,7 +86,7 @@ def train(epoch,bestLoss, indices = None):
         lossw += model.losses["w"]
         lossh += model.losses["h"]
         lossconf += model.losses["conf"]
-        lossreg += model.losses["cls"]
+        lossreg += reg.item()
         losstotal += loss.item()
         recall += model.losses["recall"]
         prec += model.losses["precision"]
@@ -95,7 +95,7 @@ def train(epoch,bestLoss, indices = None):
     bar.finish()
     prune = count_zero_weights(model)
     print(
-        "[Epoch Train %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, cls %f, pruned %f, total %f, recall: %.5f, precision: %.5f]"
+        "[Epoch Train %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, pruned %f, total %f, recall: %.5f, precision: %.5f]"
         % (
             epoch + 1,
             opt.epochs,
@@ -112,7 +112,7 @@ def train(epoch,bestLoss, indices = None):
         )
     )
 
-    name = "bestYolo" if indices is None else "pruned"
+    name = "best" if indices is None else "pruned"
 
     if bestLoss < (recall + prec):
         bestLoss = (recall + prec)
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
     parser.add_argument("--image_folder", type=str, default="data/RoboCup", help="path to dataset")
     parser.add_argument("--batch_size", type=int, default=64, help="size of each image batch")
-    parser.add_argument("--model_config_path", type=str, default="config/yolov3-tiny.cfg", help="path to model config file")
+    parser.add_argument("--model_config_path", type=str, default="config/robo-down-small.cfg", help="path to model config file")
     parser.add_argument("--data_config_path", type=str, default="config/robo.data", help="path to data config file")
     parser.add_argument("--weights_path", type=str, default="weights/yolov3.weights", help="path to weights file")
     parser.add_argument("--class_path", type=str, default="data/robo.names", help="path to class label file")
@@ -251,7 +251,7 @@ if __name__ == '__main__':
             )
         )'''
 
-    '''model.load_weights("%s/best.weights" % opt.checkpoint_dir)
+    model.load_weights("%s/best.weights" % opt.checkpoint_dir)
     with torch.no_grad():
         indices = pruneModel(model.parameters())
 
@@ -260,4 +260,4 @@ if __name__ == '__main__':
     bestLoss = 0
 
     for epoch in range(10):
-        bestLoss = train(epoch, bestLoss, indices)'''
+        bestLoss = train(epoch, bestLoss, indices)
