@@ -21,9 +21,9 @@ import torch.optim as optim
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=64, help="size of each image batch")
-    parser.add_argument("--model_config_path", type=str, default="config/robo-down-small.cfg", help="path to model config file")
+    parser.add_argument("--model_config_path", type=str, default="config/yolov3-tiny.cfg", help="path to model config file")
     parser.add_argument("--data_config_path", type=str, default="config/robo.data", help="path to data config file")
-    parser.add_argument("--weights_path", type=str, default="checkpoints/pruned.weights", help="path to weights file")
+    parser.add_argument("--weights_path", type=str, default="checkpoints/bestYolo.weights", help="path to weights file")
     parser.add_argument("--class_path", type=str, default="data/robo.names", help="path to class label file")
     parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
     parser.add_argument("--conf_thres", type=float, default=0.5, help="object confidence threshold")
@@ -123,14 +123,9 @@ if __name__ == '__main__':
                     true_positives.append(0)
                     continue
 
-                if label == 4:
-                    overlaps = bbox_iou_numpy(np.expand_dims(bbox, axis=0), annotations)
-                    assigned_annotation = np.argmax(overlaps, axis=1)
-                    max_overlap = overlaps[0, assigned_annotation]
-                else:
-                    distances = bbox_dist(bbox, annotations, 32)
-                    assigned_annotation = np.argmax(distances)
-                    max_overlap = distances[assigned_annotation]
+                distances = bbox_dist(bbox, annotations, 32)
+                assigned_annotation = np.argmax(distances)
+                max_overlap = distances[assigned_annotation]
 
                 if max_overlap >= opt.iou_thres and assigned_annotation not in detected_annotations:
                     true_positives.append(1)

@@ -144,7 +144,8 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
     for image_i, image_pred in enumerate(prediction):
         # Filter out confidence scores below threshold
         conf_mask = (image_pred[:, 4] >= conf_thres).squeeze()
-        classPred = torch.cat((torch.zeros(48),torch.ones(48),2*torch.ones(48),3*torch.ones(96))).cuda().unsqueeze(1)
+        #classPred = torch.cat((torch.zeros(48),torch.ones(48),2*torch.ones(48),3*torch.ones(96))).cuda().unsqueeze(1)
+        class_conf, classPred = torch.max(image_pred[:, 5: 5 + num_classes], 1, keepdim=True)
         classPred = classPred[conf_mask]
         image_pred = image_pred[conf_mask]
         # If none are remaining => process next image
@@ -209,11 +210,11 @@ def count_zero_weights(model):
     return float(nonzeroWeights/totalWeights)
 
 def build_targets(
-    pred_boxes, pred_conf, target, anchors, num_anchors, num_classes, grid_size_y, grid_size_x, ignore_thres, img_dim
+    pred_boxes, pred_conf, pred_cls, target, anchors, num_anchors, num_classes, grid_size_y, grid_size_x, ignore_thres, img_dim
 ):
     nB = target.size(0)
     nA = num_anchors
-    #nC = num_classes
+    nC = num_classes
     nGx = grid_size_x
     nGy = grid_size_y
     mask = torch.zeros(nB, nA, nGy, nGx)
@@ -224,6 +225,7 @@ def build_targets(
     th = torch.zeros(nB, nA, nGy, nGx)
     tconf = torch.ByteTensor(nB, nA, nGy, nGx).fill_(0)
     corr = torch.ByteTensor(nB, nA, nGy, nGx).fill_(0)
+    tcls = torch.ByteTensor(nB, nA, nGy, nGx, nC).fill_(0)
 
     nGT = 0
     nCorrect = 0
@@ -243,19 +245,16 @@ def build_targets(
             gi = int(gx)
             gj = int(gy)
 
-            if target_label == 3:
-                # Get shape of gt box
-                gt_box = torch.FloatTensor(np.array([0, 0, gw, gh])).unsqueeze(0)
-                # Get shape of anchor box
-                anchor_shapes = torch.FloatTensor(np.concatenate((np.zeros((2, 2)), np.array(anchors[-2:])), 1))
-                # Calculate iou between gt and anchor shapes
-                anch_ious = torch.cat((torch.zeros((3)), bbox_iou(gt_box, anchor_shapes)), 0)
-                # Where the overlap is larger than threshold set mask to zero (ignore)
-                conf_mask[b, anch_ious > ignore_thres, gj, gi] = 0
-                # Find the best matching anchor box
-                best_n = np.argmax(anch_ious)
-            else:
-                best_n = target_label
+            # Get shape of gt box
+            gt_box = torch.FloatTensor(np.array([0, 0, gw, gh])).unsqueeze(0)
+            # Get shape of anchor box
+            anchor_shapes = torch.FloatTensor(np.concatenate((np.zeros((len(anchors), 2)), np.array(anchors)), 1))
+            # Calculate iou between gt and anchor shapes
+            anch_ious = bbox_iou(gt_box, anchor_shapes)
+            # Where the overlap is larger than threshold set mask to zero (ignore)
+            conf_mask[b, anch_ious > ignore_thres, gj, gi] = 0
+            # Find the best matching anchor box
+            best_n = np.argmax(anch_ious)
             # Get ground truth box
             gt_box = torch.FloatTensor(np.array([gx, gy, gw, gh])).unsqueeze(0)
             # Get the best prediction
@@ -269,17 +268,18 @@ def build_targets(
             # Width and height
             tw[b, best_n, gj, gi] = math.log(gw / anchors[best_n][0] + 1e-16)
             th[b, best_n, gj, gi] = math.log(gh / anchors[best_n][1] + 1e-16)
-            #tcls[b, best_n, gj, gi, target_label] = 1
+            tcls[b, best_n, gj, gi, target_label] = 1
             tconf[b, best_n, gj, gi] = 1
 
             # Calculate iou between ground truth and best matching prediction
             iou = bbox_iou(gt_box, pred_box, x1y1x2y2=False)
             score = pred_conf[b, best_n, gj, gi]
-            if (target_label != 3 or iou > 0.5) and score > 0.5:
+            pred_label = torch.argmax(pred_cls[b, best_n, gj, gi])
+            if iou > 0.5 and pred_label == target_label and score > 0.5:
                 nCorrect += 1
                 corr[b, best_n, gj, gi] = 1
 
-    return nGT, nCorrect, mask, conf_mask, tx, ty, tw, th, tconf, corr
+    return nGT, nCorrect, mask, conf_mask, tx, ty, tw, th, tconf, tcls, corr
 
 
 def to_categorical(y, num_classes):
