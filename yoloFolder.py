@@ -34,8 +34,8 @@ def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
 
 if __name__ =="__main__":
 
-    trPath = "../Data/RoboCup/Train/"
-    trFile = "./data/RoboCup/train.txt"
+    trPath = "../Data/RoboCup/Finetune/train/"
+    trFile = "./data/RoboCup/FinetuneTrain.txt"
 
     with open(trFile,"w+") as file:
         for fName in glob.glob1(trPath,"*.png"):
@@ -48,8 +48,8 @@ if __name__ =="__main__":
         img = image_resize(img,height=416)
         cv2.imwrite(trPath+fName,img)'''
 
-    tePath = "../Data/RoboCup/Test/"
-    teFile = "./data/RoboCup/test.txt"
+    tePath = "../Data/RoboCup/Finetune/test/"
+    teFile = "./data/RoboCup/FinetuneTest.txt"
 
     with open(teFile, "w+") as file:
         for fName in glob.glob1(tePath, "*.png"):

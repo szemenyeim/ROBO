@@ -185,7 +185,7 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
 
     return output
 
-def pruneModel(params, ratio = 0.02):
+def pruneModel(params, ratio = 0.01):
     i = 0
     indices = []
     for param in params:
@@ -204,7 +204,7 @@ def count_zero_weights(model):
     totalWeights = 0
     for param in model.parameters():
         max = torch.max(torch.abs(param))
-        nonzeroWeights += (torch.abs(param) < max*0.02).sum().float()
+        nonzeroWeights += (torch.abs(param) < max*0.01).sum().float()
         totalWeights += param.numel()
     return float(nonzeroWeights/totalWeights)
 

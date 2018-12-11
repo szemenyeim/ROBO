@@ -108,7 +108,7 @@ def kmeans2(X, centroids, eps, anchor_file):
 
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-filelist', default='./data/RoboCup/train.txt',
+    parser.add_argument('-filelist', default='./data/RoboCup/FinetuneTrain.txt',
                         help='path to filelist\n')
     parser.add_argument('-output_dir', default='./data/RoboCup/anchors', type=str,
                         help='Output anchor directory\n')
@@ -143,7 +143,7 @@ def main(argv):
         f2 = open(line)
         for line in f2.readlines():
             line = line.rstrip('\n')
-            c, _, _, w, h, _ = line.split(' ')
+            c, _, _, w, h = line.split(' ')
             # print(w,h)
             annotation_dims[int(c)].append(tuple(map(float, (w, h))))
 
@@ -156,7 +156,7 @@ def main(argv):
             anchors[-2:] = kmeans(dims, 2)[0]
         else:
             anchors[i] = np.mean(dims,0)
-    anchor_file = join(args.output_dir, 'anchors%d.txt' % (args.num_clusters))
+    anchor_file = join(args.output_dir, 'anchorsFinetune%d.txt' % (args.num_clusters))
     write_anchors_to_file(anchors,None,anchor_file)
 
 
