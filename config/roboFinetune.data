@@ -1,0 +1,6 @@
+classes= 4
+train=./data/RoboCup/FinetuneTrain.txt
+valid=./data/RoboCup/FinetuneTest.txt
+names=data/robo.names
+backup=backup/
+eval=coco
