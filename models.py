@@ -258,7 +258,7 @@ class YOLOLayer(nn.Module):
 class Darknet(nn.Module):
     """YOLOv3 object detection model"""
 
-    def __init__(self, config_path, img_size=(416,416)):
+    def __init__(self, config_path, img_size=(384,512)):
         super(Darknet, self).__init__()
         self.module_defs = parse_model_config(config_path)
         self.hyperparams, self.module_list = create_modules(self.module_defs)
@@ -378,3 +378,23 @@ class Darknet(nn.Module):
                 conv_layer.weight.data.cpu().numpy().tofile(fp)
 
         fp.close()
+
+
+    def get_computations(self):
+        H,W = self.img_size
+        output_filters = [3]
+        computations = []
+
+        for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+            if module_def["type"] == "convolutional":
+                bn = int(module_def["batch_normalize"])
+                filters = int(module_def["filters"])
+                kernel_size = int(module_def["size"])
+                H = H // int(module_def["stride"])
+                W = W // int(module_def["stride"])
+                ratio = float(module[0].weight.nonzero().size(0)) / float(module[0].weight.numel())
+                computations.append(kernel_size * kernel_size * output_filters[-1] * filters * W * H * 2 * ratio + bn * filters * H * W * 2)
+                output_filters.append(filters)
+
+        return computations
+

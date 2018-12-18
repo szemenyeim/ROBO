@@ -23,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", type=int, default=64, help="size of each image batch")
     parser.add_argument("--model_config_path", type=str, default="config/robo-down-small.cfg", help="path to model config file")
     parser.add_argument("--data_config_path", type=str, default="config/roboFinetune.data", help="path to data config file")
-    parser.add_argument("--weights_path", type=str, default="checkpoints/bestFinetunePruned92.weights", help="path to weights file")
+    parser.add_argument("--weights_path", type=str, default="checkpoints/bestFinetunePruned53.weights", help="path to weights file")
     parser.add_argument("--class_path", type=str, default="data/robo.names", help="path to class label file")
     parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
     parser.add_argument("--conf_thres", type=float, default=0.5, help="object confidence threshold")
@@ -44,6 +44,18 @@ if __name__ == '__main__':
     # Initiate model
     model = Darknet(opt.model_config_path)
     model.load_weights(opt.weights_path)
+
+    print(count_zero_weights(model))
+
+    '''with torch.no_grad():
+        pruneModel(model.parameters())
+
+    computations = model.get_computations()
+
+    print(computations)
+    print(sum(computations))
+
+    exit(0)'''
 
     if cuda:
         model = model.cuda()

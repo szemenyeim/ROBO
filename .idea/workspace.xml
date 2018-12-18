@@ -1,18 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="9b06a591-ea1b-480a-92f4-c5050ae285e4" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/compute_anchors.py" beforeDir="false" afterPath="$PROJECT_DIR$/compute_anchors.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/robo-down-small.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/config/robo-down-small.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/trafficYolo/test.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data/trafficYolo/test.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/trafficYolo/train.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data/trafficYolo/train.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/detect.py" beforeDir="false" afterPath="$PROJECT_DIR$/detect.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yoloFolder.py" beforeDir="false" afterPath="$PROJECT_DIR$/yoloFolder.py" afterDir="false" />
-    </list>
+    <list default="true" id="9b06a591-ea1b-480a-92f4-c5050ae285e4" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,8 +13,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/models.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2176">
-              <caret line="143" selection-start-line="143" selection-end-line="143" />
+            <state relative-caret-position="6426">
+              <caret line="393" column="50" selection-start-line="393" selection-start-column="50" selection-end-line="393" selection-end-column="50" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -36,8 +25,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/utils/utils.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3332">
-              <caret line="206" column="54" selection-start-line="206" selection-start-column="54" selection-end-line="206" selection-end-column="54" />
+            <state relative-caret-position="4743">
+              <caret line="289" column="28" selection-start-line="289" selection-start-column="28" selection-end-line="289" selection-end-column="28" />
             </state>
           </provider>
         </entry>
@@ -57,8 +46,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/train.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="334">
-              <caret line="250" column="15" selection-start-line="250" selection-start-column="15" selection-end-line="250" selection-end-column="15" />
+            <state relative-caret-position="2227">
+              <caret line="151" column="16" selection-start-line="151" selection-start-column="16" selection-end-line="152" selection-end-column="37" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -78,8 +67,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/detect.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="368">
-              <caret line="22" column="85" selection-start-line="22" selection-start-column="77" selection-end-line="22" selection-end-column="85" />
+            <state relative-caret-position="85">
+              <caret line="22" column="85" selection-start-line="22" selection-start-column="85" selection-end-line="22" selection-end-column="85" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -90,8 +79,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="425">
-              <caret line="25" column="93" selection-start-line="25" selection-start-column="93" selection-end-line="25" selection-end-column="93" />
+            <state relative-caret-position="204">
+              <caret line="57" column="14" selection-start-line="57" selection-start-column="14" selection-end-line="57" selection-end-column="14" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -135,21 +124,21 @@
         <option value="$PROJECT_DIR$/YOLOExtractor.py" />
         <option value="$PROJECT_DIR$/data/robo.names" />
         <option value="$PROJECT_DIR$/config/yolov3-tiny.cfg" />
-        <option value="$PROJECT_DIR$/models.py" />
         <option value="$PROJECT_DIR$/config/roboFinetune.data" />
         <option value="$PROJECT_DIR$/compute_anchors.py" />
         <option value="$PROJECT_DIR$/yoloFolder.py" />
         <option value="$PROJECT_DIR$/detect.py" />
         <option value="$PROJECT_DIR$/utils/utils.py" />
-        <option value="$PROJECT_DIR$/train.py" />
         <option value="$PROJECT_DIR$/config/robo-down-small.cfg" />
+        <option value="$PROJECT_DIR$/models.py" />
+        <option value="$PROJECT_DIR$/train.py" />
         <option value="$PROJECT_DIR$/test.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="128" />
-    <option name="y" value="33" />
+    <option name="x" value="1970" />
+    <option name="y" value="12" />
     <option name="width" value="1789" />
     <option name="height" value="1047" />
   </component>
@@ -161,6 +150,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -177,11 +167,10 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$USER_HOME$/Downloads/test.py" />
     <property name="settings.editor.selected.configurable" value="Errors" />
   </component>
   <component name="RecentsManager">
@@ -311,9 +300,9 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.test" />
+        <item itemvalue="Python.train" />
         <item itemvalue="Python.detect" />
         <item itemvalue="Python.yoloFolder" />
-        <item itemvalue="Python.train" />
         <item itemvalue="Python.compute_anchors" />
       </list>
     </recent_temporary>
@@ -486,10 +475,19 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$USER_HOME$/Downloads/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-663">
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/models.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2176">
-          <caret line="143" selection-start-line="143" selection-end-line="143" />
+        <state relative-caret-position="6426">
+          <caret line="393" column="50" selection-start-line="393" selection-start-column="50" selection-end-line="393" selection-end-column="50" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
           </folding>
@@ -498,8 +496,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/utils/utils.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3332">
-          <caret line="206" column="54" selection-start-line="206" selection-start-column="54" selection-end-line="206" selection-end-column="54" />
+        <state relative-caret-position="4743">
+          <caret line="289" column="28" selection-start-line="289" selection-start-column="28" selection-end-line="289" selection-end-column="28" />
         </state>
       </provider>
     </entry>
@@ -513,20 +511,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/detect.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="368">
-          <caret line="22" column="85" selection-start-line="22" selection-start-column="77" selection-end-line="22" selection-end-column="85" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/train.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="334">
-          <caret line="250" column="15" selection-start-line="250" selection-start-column="15" selection-end-line="250" selection-end-column="15" />
+        <state relative-caret-position="2227">
+          <caret line="151" column="16" selection-start-line="151" selection-start-column="16" selection-end-line="152" selection-end-column="37" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
           </folding>
@@ -540,10 +528,20 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/detect.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="85">
+          <caret line="22" column="85" selection-start-line="22" selection-start-column="85" selection-end-line="22" selection-end-column="85" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="425">
-          <caret line="25" column="93" selection-start-line="25" selection-start-column="93" selection-end-line="25" selection-end-column="93" />
+        <state relative-caret-position="204">
+          <caret line="57" column="14" selection-start-line="57" selection-start-column="14" selection-end-line="57" selection-end-column="14" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
           </folding>
