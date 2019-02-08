@@ -3,8 +3,8 @@ import glob
 import cv2
 import numpy as np
 
-imgPath = "../Data/RoboCup/Train/"
-labelPath = "../Data/RoboCup/Masks/Train/"
+imgPath = "E:/RoboCup/YOLO/Train/"
+labelPath = "E:/RoboCup/YOLO/Masks/Train/"
 
 labelDict = {}
 legendDict = {}
