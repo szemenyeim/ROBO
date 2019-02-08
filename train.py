@@ -20,17 +20,6 @@ import torch.optim as optim
 
 import progressbar
 
-def add_dimension_glasso(var, dim=0):
-    return var.pow(2).sum(dim=dim).add(1e-8).pow(1/2.).sum()
-
-def get_glasso_term(model):
-    loss = 0
-    for param in model.parameters():
-        if param.data.dim() == 4:
-            loss += add_dimension_glasso(param,0)
-            loss += add_dimension_glasso(param,1)
-    return loss
-
 def l1reg(model):
     regularization_loss = 0
     for param in model.parameters():
@@ -61,7 +50,7 @@ def val(epoch):
             targets = targets.type(Tensor)
 
             loss = model(imgs, targets)
-            reg = decay*get_glasso_term(model)
+            reg = decay*l1reg(model)
             loss += reg
 
             bar.update(batch_i)
@@ -125,8 +114,9 @@ def train(epoch,bestLoss, indices = None):
         optimizer.zero_grad()
 
         loss = model(imgs, targets)
-        reg = decay * l1reg(model) if finetune else Tensor([0.0]).squeeze()
-        loss += reg
+        if finetune:
+            reg = decay * l1reg(model)
+            loss += reg
 
         loss.backward()
 
@@ -192,10 +182,18 @@ def train(epoch,bestLoss, indices = None):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--finetune", type=bool, default=False, help="Finetuning")
+    parser.add_argument("--finetune", help="Finetuning",
+                        action="store_true")
+    parser.add_argument("--lr", help="Learning rate",
+                        type=float, default=1e-3)
+    parser.add_argument("--decay", help="Weight decay",
+                        type=float, default=1e-3)
     opt = parser.parse_args()
 
     finetune = opt.finetune
+    learning_rate = opt.lr
+    decay = opt.decay
+
     classPath = "data/robo.names"
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
     model_config_path = "config/robo-down-small.cfg"
@@ -225,10 +223,6 @@ if __name__ == '__main__':
 
     # Get hyper parameters
     hyperparams = parse_model_config(model_config_path)[0]
-    learning_rate = float(hyperparams["learning_rate"])
-    momentum = float(hyperparams["momentum"])
-    decay = float(hyperparams["decay"])
-    #learning_rate = 0.5*learning_rate if finetune else learning_rate
 
     # Initiate model
     model = ROBO(model_config_path,img_size=img_size)
@@ -253,7 +247,6 @@ if __name__ == '__main__':
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
     optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
-    #optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model.parameters()),lr=learning_rate,momentum=momentum,weight_decay=decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,50)
 
     for epoch in range(epochs):
@@ -269,4 +262,4 @@ if __name__ == '__main__':
         bestLoss = 0
 
         for epoch in range(5):
-            bestLoss = train(epoch, bestLoss, indices)
+            bestLoss = train(epoch, bestLoss, indices=indices)

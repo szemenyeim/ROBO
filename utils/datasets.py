@@ -54,8 +54,7 @@ class ListDataset(Dataset):
         self.transform = transforms.Compose([
             #transforms.Pad(pad,128),
             transforms.Resize(img_size),
-            #transforms.ColorJitter(0.2,0.2,0.2,0.2),
-            transforms.ToTensor(),
+            transforms.ColorJitter(0.4,0.4,0.4,0.1),
             #transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
         ])
 
@@ -72,6 +71,11 @@ class ListDataset(Dataset):
 
         input_img = self.transform(img)
 
+        p = np.random.rand()
+        if p > 0.5:
+            input_img = transforms.functional.hflip(input_img)
+        input_img = transforms.functional.to_tensor(input_img)
+
         padded_h, padded_w = h+2*self.pad[0],w+2*self.pad[1]
 
         #---------
@@ -85,6 +89,8 @@ class ListDataset(Dataset):
         bigLabels = None
         if os.path.exists(label_path):
             labels = np.loadtxt(label_path).reshape(-1, 5)
+            if p > 0.5:
+                labels[:,1] = 1 - labels[:,1]
             # Extract coordinates for unpadded + unscaled image
             x1 = w * (labels[:, 1] - labels[:, 3]/2)
             y1 = h * (labels[:, 2] - labels[:, 4]/2)
