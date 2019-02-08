@@ -147,15 +147,10 @@ def main(argv):
             # print(w,h)
             annotation_dims[int(c)].append(tuple(map(float, (w, h))))
 
-    anchors = np.zeros([nclass+1,2])
+    anchors = np.zeros([nclass,2])
     for i in range(nclass):
         dims = np.array(annotation_dims[i])
-        if i == nclass-1:
-            whitened = whiten(dims)
-            book = np.array((whitened[0], whitened[2]))
-            anchors[-2:] = kmeans(dims, 2)[0]
-        else:
-            anchors[i] = np.mean(dims,0)
+        anchors[i] = np.mean(dims,0)
     anchor_file = join(args.output_dir, 'anchorsFinetune%d.txt' % (args.num_clusters))
     write_anchors_to_file(anchors,None,anchor_file)
 

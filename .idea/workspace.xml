@@ -2,13 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9b06a591-ea1b-480a-92f4-c5050ae285e4" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/YOLOExtractor.py" beforeDir="false" afterPath="$PROJECT_DIR$/YOLOExtractor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/RoboCup/FinetuneTest.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data/RoboCup/FinetuneTest.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/RoboCup/FinetuneTrain.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data/RoboCup/FinetuneTrain.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/RoboCup/test.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data/RoboCup/test.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/RoboCup/train.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data/RoboCup/train.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/yoloFolder.py" beforeDir="false" afterPath="$PROJECT_DIR$/yoloFolder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/detect.py" beforeDir="false" afterPath="$PROJECT_DIR$/detect.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/datasets.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/datasets.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/utils.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -18,11 +17,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/models.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4760">
-              <caret line="400" selection-start-line="400" selection-end-line="400" />
+            <state relative-caret-position="247">
+              <caret line="195" column="26" selection-start-line="195" selection-start-column="26" selection-end-line="195" selection-end-column="26" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -33,17 +32,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/utils/utils.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4879">
-              <caret line="297" selection-start-line="297" selection-end-line="297" />
+            <state relative-caret-position="376">
+              <caret line="283" column="93" selection-start-line="283" selection-start-column="93" selection-end-line="283" selection-end-column="93" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/utils/datasets.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1122">
-              <caret line="83" selection-start-line="83" selection-end-line="83" />
+            <state relative-caret-position="1447">
+              <caret line="125" column="53" selection-start-line="125" selection-start-column="53" selection-end-line="125" selection-end-column="53" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -54,8 +53,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/train.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4097">
-              <caret line="261" selection-start-line="261" selection-end-line="261" />
+            <state relative-caret-position="-77">
+              <caret line="229" column="9" selection-start-line="229" selection-start-column="4" selection-end-line="229" selection-end-column="9" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -64,19 +63,10 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/config/robo-down-small.cfg">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
-              <caret line="11" column="12" selection-start-line="11" selection-start-column="12" selection-end-line="11" selection-end-column="12" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/detect.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="85">
-              <caret line="22" column="85" selection-start-line="22" selection-start-column="85" selection-end-line="22" selection-end-column="85" />
+            <state relative-caret-position="-1273">
+              <caret line="22" column="76" selection-start-line="22" selection-start-column="76" selection-end-line="22" selection-end-column="76" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -87,8 +77,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="408">
-              <caret line="69" selection-start-line="69" selection-end-line="69" />
+            <state relative-caret-position="238">
+              <caret line="56" column="14" selection-start-line="56" selection-start-column="14" selection-end-line="56" selection-end-column="14" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
               </folding>
@@ -116,6 +106,8 @@
       <find>conf_mask</find>
       <find>width_in_cfg_file</find>
       <find>bbox</find>
+      <find>best</find>
+      <find>decay</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -128,25 +120,25 @@
         <option value="$PROJECT_DIR$/data.py" />
         <option value="$PROJECT_DIR$/config/robo-down.cfg" />
         <option value="$PROJECT_DIR$/config/robo.cfg" />
-        <option value="$PROJECT_DIR$/utils/datasets.py" />
         <option value="$PROJECT_DIR$/data/robo.names" />
         <option value="$PROJECT_DIR$/config/yolov3-tiny.cfg" />
         <option value="$PROJECT_DIR$/config/roboFinetune.data" />
-        <option value="$PROJECT_DIR$/compute_anchors.py" />
-        <option value="$PROJECT_DIR$/detect.py" />
-        <option value="$PROJECT_DIR$/utils/utils.py" />
-        <option value="$PROJECT_DIR$/config/robo-down-small.cfg" />
-        <option value="$PROJECT_DIR$/models.py" />
-        <option value="$PROJECT_DIR$/train.py" />
-        <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/YOLOExtractor.py" />
         <option value="$PROJECT_DIR$/yoloFolder.py" />
+        <option value="$PROJECT_DIR$/compute_anchors.py" />
+        <option value="$PROJECT_DIR$/config/robo-down-small.cfg" />
+        <option value="$PROJECT_DIR$/utils/datasets.py" />
+        <option value="$PROJECT_DIR$/models.py" />
+        <option value="$PROJECT_DIR$/utils/utils.py" />
+        <option value="$PROJECT_DIR$/train.py" />
+        <option value="$PROJECT_DIR$/test.py" />
+        <option value="$PROJECT_DIR$/detect.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="138" />
-    <option name="y" value="65" />
+    <option name="x" value="2084" />
+    <option name="y" value="90" />
     <option name="width" value="1676" />
     <option name="height" value="896" />
   </component>
@@ -158,27 +150,43 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
-              <item name="PyTorchYOLO" type="b2602c69:ProjectViewProjectNode" />
-              <item name="PyTorchYOLO" type="462c0819:PsiDirectoryNode" />
+              <item name="ROBO" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ROBO" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="PyTorchYOLO" type="b2602c69:ProjectViewProjectNode" />
-              <item name="PyTorchYOLO" type="462c0819:PsiDirectoryNode" />
+              <item name="ROBO" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ROBO" type="462c0819:PsiDirectoryNode" />
               <item name="checkpoints" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="ROBO" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ROBO" type="462c0819:PsiDirectoryNode" />
+              <item name="config" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="ROBO" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ROBO" type="462c0819:PsiDirectoryNode" />
+              <item name="data" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="ROBO" type="b2602c69:ProjectViewProjectNode" />
+              <item name="ROBO" type="462c0819:PsiDirectoryNode" />
+              <item name="data" type="462c0819:PsiDirectoryNode" />
+              <item name="RoboCup" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$USER_HOME$/Downloads/test.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="Errors" />
   </component>
   <component name="RecentsManager">
@@ -199,7 +207,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.yoloFolder">
+  <component name="RunManager" selected="Python.detect">
     <configuration name="compute_anchors" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="PyTorch-YOLOv3" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -307,11 +315,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.yoloFolder" />
+        <item itemvalue="Python.detect" />
         <item itemvalue="Python.test" />
         <item itemvalue="Python.train" />
-        <item itemvalue="Python.detect" />
         <item itemvalue="Python.compute_anchors" />
+        <item itemvalue="Python.yoloFolder" />
       </list>
     </recent_temporary>
   </component>
@@ -329,7 +337,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="138" y="65" width="1676" height="896" extended-state="0" />
+    <frame x="2084" y="90" width="1676" height="896" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.2728938" />
@@ -337,8 +345,8 @@
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.2621232" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.39824945" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.2621232" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.39711663" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -367,7 +375,6 @@
         <state relative-caret-position="-12850" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/data/RoboCup/train.txt" />
     <entry file="file://$APPLICATION_HOME_DIR$/helpers/typeshed/stdlib/3/collections/__init__.pyi">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="216">
@@ -390,7 +397,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../../RoboCup/RoboCupVision/lr_scheduler.py">
+    <entry file="file://$PROJECT_DIR$/../RoboCupVision/lr_scheduler.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-4947">
           <caret line="12" column="8" selection-start-line="12" selection-start-column="8" selection-end-line="12" selection-end-column="8" />
@@ -429,20 +436,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/config/yolov3-tiny.cfg">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2108">
-          <caret line="124" column="8" selection-start-line="124" selection-start-column="8" selection-end-line="124" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/config/robo.data">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="34">
-          <caret line="2" column="5" selection-start-line="2" selection-end-line="2" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/config/roboFinetune.data">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="34">
@@ -453,66 +446,9 @@
     <entry file="file://$PROJECT_DIR$/data/RoboCup/anchors/anchorsFinetune3.txt">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/compute_anchors.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="691">
-          <caret line="145" column="25" lean-forward="true" selection-start-line="145" selection-start-column="25" selection-end-line="145" selection-end-column="25" />
-          <folding>
-            <element signature="e#49#71#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/Downloads/test.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-663">
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/utils/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4879">
-          <caret line="297" selection-start-line="297" selection-end-line="297" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/utils/datasets.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1122">
-          <caret line="83" selection-start-line="83" selection-end-line="83" />
-          <folding>
-            <element signature="e#0#11#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4097">
-          <caret line="261" selection-start-line="261" selection-end-line="261" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/detect.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="85">
-          <caret line="22" column="85" selection-start-line="22" selection-start-column="85" selection-end-line="22" selection-end-column="85" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="408">
-          <caret line="69" selection-start-line="69" selection-end-line="69" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
           </folding>
@@ -539,6 +475,60 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/compute_anchors.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="170">
+          <caret line="134" selection-start-line="134" selection-end-line="134" />
+          <folding>
+            <element signature="e#49#71#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config/yolov3-tiny.cfg">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="144">
+          <caret line="115" column="16" selection-start-line="115" selection-start-column="16" selection-end-line="115" selection-end-column="16" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data/RoboCup/train.txt">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data/RoboCup/test.txt">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$USER_HOME$/AppData/Local/Continuum/anaconda3/Lib/site-packages/torch/utils/data/dataloader.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="348">
+          <caret line="657" selection-start-line="657" selection-end-line="657" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/AppData/Local/Continuum/anaconda3/Lib/site-packages/colorama/ansitowin32.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="144">
+          <caret line="36" selection-start-line="36" selection-end-line="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="247">
+          <caret line="195" column="26" selection-start-line="195" selection-start-column="26" selection-end-line="195" selection-end-column="26" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/utils/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="376">
+          <caret line="283" column="93" selection-start-line="283" selection-start-column="93" selection-end-line="283" selection-end-column="93" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/config/robo-down-small.cfg">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="187">
@@ -546,12 +536,49 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/models.py">
+    <entry file="file://$PROJECT_DIR$/test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4760">
-          <caret line="400" selection-start-line="400" selection-end-line="400" />
+        <state relative-caret-position="238">
+          <caret line="56" column="14" selection-start-line="56" selection-start-column="14" selection-end-line="56" selection-end-column="14" />
           <folding>
             <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config/robo.data">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="34">
+          <caret line="2" column="5" selection-start-line="2" selection-end-line="2" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/detect.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1273">
+          <caret line="22" column="76" selection-start-line="22" selection-start-column="76" selection-end-line="22" selection-end-column="76" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/train.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-77">
+          <caret line="229" column="9" selection-start-line="229" selection-start-column="4" selection-end-line="229" selection-end-column="9" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/utils/datasets.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1447">
+          <caret line="125" column="53" selection-start-line="125" selection-start-column="53" selection-end-line="125" selection-end-column="53" />
+          <folding>
+            <element signature="e#0#11#0" expanded="true" />
           </folding>
         </state>
       </provider>

@@ -109,6 +109,9 @@ def train(epoch,bestLoss, indices = None):
     recall = 0
     prec = 0
 
+    recs = [0,0]
+    precs = [0,0]
+
     model.train()
 
     scheduler.step()
@@ -117,7 +120,7 @@ def train(epoch,bestLoss, indices = None):
 
     for batch_i, (_, imgs, targets) in enumerate(trainloader):
         imgs = imgs.type(Tensor)
-        targets = targets.type(Tensor)
+        targets = [x.type(Tensor) for x in targets]
 
         optimizer.zero_grad()
 
@@ -147,12 +150,16 @@ def train(epoch,bestLoss, indices = None):
         losstotal += loss.item()
         recall += model.losses["recall"]
         prec += model.losses["precision"]
+        recs[0] += model.recprec[0]
+        recs[1] += model.recprec[2]
+        precs[0] += model.recprec[1]
+        precs[1] += model.recprec[3]
 
         model.seen += imgs.size(0)
     bar.finish()
     prune = count_zero_weights(model)
     print(
-        "[Epoch Train %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, pruned %f, total %f, recall: %.5f, precision: %.5f]"
+        "[Epoch Train %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, pruned %f, total %f, recall: %.5f (%.5f / %.5f), precision: %.5f (%.5f / %.5f)]"
         % (
             epoch + 1,
             epochs,
@@ -165,11 +172,15 @@ def train(epoch,bestLoss, indices = None):
             prune,
             losstotal / float(len(trainloader)),
             recall / float(len(trainloader)),
+            recs[0] / float(len(trainloader)),
+            recs[1] / float(len(trainloader)),
             prec / float(len(trainloader)),
+            precs[0] / float(len(trainloader)),
+            precs[1] / float(len(trainloader)),
         )
     )
 
-    name = "bestFinetune" if finetune else "best"
+    name = "DBestFinetune" if finetune else "DBest"
     name = name + ("" if indices is None else "Pruned")
 
     if bestLoss < (recall + prec):
@@ -189,7 +200,7 @@ if __name__ == '__main__':
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
     model_config_path = "config/robo-down-small.cfg"
     img_size = (384,512)
-    weights_path = "checkpoints/best.weights"
+    weights_path = "checkpoints/DBest.weights"
     n_cpu = 4
     batch_size = 64
     epochs = 100 if finetune else 100
@@ -220,7 +231,7 @@ if __name__ == '__main__':
     #learning_rate = 0.5*learning_rate if finetune else learning_rate
 
     # Initiate model
-    model = Darknet(model_config_path,img_size=img_size)
+    model = ROBO(model_config_path,img_size=img_size)
     if finetune:
         model.load_weights(weights_path)
     else:
@@ -233,10 +244,10 @@ if __name__ == '__main__':
 
     # Get dataloader
     trainloader = torch.utils.data.DataLoader(
-        ListDataset(train_path,img_size=img_size), batch_size=batch_size, shuffle=True, num_workers=n_cpu
+        ListDataset(train_path,img_size=img_size, train=True), batch_size=batch_size, shuffle=True, num_workers=n_cpu
     )
     valLoader = torch.utils.data.DataLoader(
-        ListDataset(val_path,img_size=img_size), batch_size=batch_size, shuffle=False, num_workers=n_cpu
+        ListDataset(val_path,img_size=img_size, train=True), batch_size=batch_size, shuffle=False, num_workers=n_cpu
     )
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -249,7 +260,7 @@ if __name__ == '__main__':
         bestLoss = train(epoch,bestLoss)
 
     if finetune:
-        model.load_weights("checkpoints/bestFinetune.weights")
+        model.load_weights("checkpoints/DBestFinetune.weights")
         with torch.no_grad():
             indices = pruneModel(model.parameters())
 

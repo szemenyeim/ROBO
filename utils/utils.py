@@ -144,7 +144,7 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
     for image_i, image_pred in enumerate(prediction):
         # Filter out confidence scores below threshold
         conf_mask = (image_pred[:, 4] >= conf_thres).squeeze()
-        classPred = torch.cat((torch.zeros(48),torch.ones(48),2*torch.ones(48),3*torch.ones(96))).cuda().unsqueeze(1)
+        classPred = torch.cat((torch.zeros(192),torch.ones(192),2*torch.ones(48),3*torch.ones(48))).cuda().unsqueeze(1)
         classPred = classPred[conf_mask]
         image_pred = image_pred[conf_mask]
         # If none are remaining => process next image
@@ -243,19 +243,7 @@ def build_targets(
             gi = int(gx)
             gj = int(gy)
 
-            if target_label == 3:
-                # Get shape of gt box
-                gt_box = torch.FloatTensor(np.array([0, 0, gw, gh])).unsqueeze(0)
-                # Get shape of anchor box
-                anchor_shapes = torch.FloatTensor(np.concatenate((np.zeros((2, 2)), np.array(anchors[-2:])), 1))
-                # Calculate iou between gt and anchor shapes
-                anch_ious = torch.cat((torch.zeros((3)), bbox_iou(gt_box, anchor_shapes)), 0)
-                # Where the overlap is larger than threshold set mask to zero (ignore)
-                conf_mask[b, anch_ious > ignore_thres, gj, gi] = 0
-                # Find the best matching anchor box
-                best_n = np.argmax(anch_ious)
-            else:
-                best_n = target_label
+            best_n = target_label
             # Get ground truth box
             gt_box = torch.FloatTensor(np.array([gx, gy, gw, gh])).unsqueeze(0)
             # Get the best prediction
@@ -286,12 +274,12 @@ def to_categorical(y, num_classes):
     """ 1-hot encodes a tensor """
     return torch.from_numpy(np.eye(num_classes, dtype="uint8")[y])
 
-def bbox_dist(box1,boxes,scale):
+def bbox_dist(box1,boxes):
     distances = np.array([])
     for box2 in boxes:
         cent1x = (box1[0] + box1[2]) / 2
         cent1y = (box1[1] + box1[3]) / 2
         cent2x = (box2[0] + box2[2]) / 2
         cent2y = (box2[1] + box2[3]) / 2
-        distances = np.append(distances,(scale - np.sqrt(pow(cent1x-cent2x,2) + pow(cent1y-cent2y,2)))/scale)
+        distances = np.append(distances,np.sqrt(pow(cent1x-cent2x,2) + pow(cent1y-cent2y,2)))
     return distances

@@ -15,14 +15,6 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-class Upsample(nn.Module):
-    def __init__(self,scale_factor):
-        super(Upsample,self).__init__()
-        self.scale_factor = scale_factor
-
-    def forward(self, x):
-        return F.interpolate(x,scale_factor=self.scale_factor)
-
 
 def create_modules(module_defs):
     """
@@ -59,29 +51,6 @@ def create_modules(module_defs):
                 modules.add_module("batch_norm_%d" % i, nn.BatchNorm2d(filters))
             if module_def["activation"] == "leaky":
                 modules.add_module("leaky_%d" % i, nn.LeakyReLU(0.1))
-
-        elif module_def["type"] == "maxpool":
-            kernel_size = int(module_def["size"])
-            stride = int(module_def["stride"])
-            H = H // stride
-            W = W // stride
-            computations.append(output_filters[-1]*W*H*(kernel_size*kernel_size - 1))
-            if kernel_size == 2 and stride == 1:
-                padding = nn.ZeroPad2d((0, 1, 0, 1))
-                modules.add_module("_debug_padding_%d" % i, padding)
-            maxpool = nn.MaxPool2d(
-                kernel_size=int(module_def["size"]),
-                stride=int(module_def["stride"]),
-                padding=int((kernel_size - 1) // 2),
-            )
-            modules.add_module("maxpool_%d" % i, maxpool)
-
-        elif module_def["type"] == "upsample":
-            upsample = Upsample(scale_factor=int(module_def["stride"]))
-            H = H * int(module_def["stride"])
-            W = W * int(module_def["stride"])
-            computations.append(output_filters[-1]*W*H)
-            modules.add_module("upsample_%d" % i, upsample)
 
         elif module_def["type"] == "route":
             layers = [int(x) for x in module_def["layers"].split(",")]
@@ -136,8 +105,8 @@ class YOLOLayer(nn.Module):
         self.ignore_thres = 0.5
         self.lambda_coord = 1
 
-        self.mse_loss = nn.MSELoss(reduction='elementwise_mean')  # Coordinate loss
-        self.bce_loss = nn.BCELoss(reduction='elementwise_mean')  # Confidence loss
+        self.mse_loss = nn.MSELoss(reduction='mean')  # Coordinate loss
+        self.bce_loss = nn.BCELoss(reduction='mean')  # Confidence loss
         #self.ce_loss = nn.CrossEntropyLoss()  # Class loss
 
     def forward(self, x, targets=None):
@@ -201,7 +170,7 @@ class YOLOLayer(nn.Module):
             nProposals = int((pred_conf > 0.5).sum().item())
             recall = float(nCorrect / nGT) if nGT else 1
             nCorrPrec = int((corr).sum().item())
-            precision = float(nCorrPrec / nProposals)
+            precision = float(nCorrPrec / nProposals) if nProposals > 0 else 0
 
             # Handle masks
             mask = mask.type(ByteTensor)
@@ -224,7 +193,7 @@ class YOLOLayer(nn.Module):
             loss_y = self.mse_loss(y[mask], ty[mask])
             loss_w = self.mse_loss(w[mask], tw[mask])
             loss_h = self.mse_loss(h[mask], th[mask])
-            loss_conf = self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false]) + self.bce_loss(
+            loss_conf = 3*self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false]) + self.bce_loss(
                 pred_conf[conf_mask_true], tconf[conf_mask_true]
             )
             #loss_cls = (1 / nB) * self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
@@ -255,11 +224,11 @@ class YOLOLayer(nn.Module):
             return output
 
 
-class Darknet(nn.Module):
+class ROBO(nn.Module):
     """YOLOv3 object detection model"""
 
     def __init__(self, config_path, img_size=(384,512)):
-        super(Darknet, self).__init__()
+        super(ROBO, self).__init__()
         self.module_defs = parse_model_config(config_path)
         self.hyperparams, self.module_list = create_modules(self.module_defs)
         self.img_size = img_size
@@ -272,6 +241,7 @@ class Darknet(nn.Module):
         output = []
         self.losses = defaultdict(float)
         outNum = 0
+        self.recprec = [0,0,0,0]
         layer_outputs = []
         for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
             if module_def["type"] in ["convolutional", "upsample", "maxpool"]:
@@ -285,7 +255,9 @@ class Darknet(nn.Module):
             elif module_def["type"] == "yolo":
                 # Train phase: get loss
                 if is_training:
-                    x, *losses = module[0](x, targets)
+                    x, *losses = module[0](x, targets[outNum])
+                    self.recprec[outNum*2]+=(losses[-2])
+                    self.recprec[outNum*2+1]+=(losses[-1])
                     for name, loss in zip(self.loss_names, losses):
                         self.losses[name] += loss
                 # Test phase: Get detections
