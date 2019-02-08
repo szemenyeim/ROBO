@@ -54,7 +54,12 @@ class ListDataset(Dataset):
         self.transform = transforms.Compose([
             #transforms.Pad(pad,128),
             transforms.Resize(img_size),
-            transforms.ColorJitter(0.4,0.4,0.4,0.1),
+            transforms.ColorJitter(0.3,0.3,0.3,0.1),
+            #transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        ])
+        self.valTransform = transforms.Compose([
+            #transforms.Pad(pad,128),
+            transforms.Resize(img_size),
             #transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
         ])
 
@@ -69,9 +74,9 @@ class ListDataset(Dataset):
 
         w, h = img.size
 
-        input_img = self.transform(img)
+        input_img = self.transform(img) if self.train else self.valTransform(img)
 
-        p = np.random.rand()
+        p = np.random.rand() if self.train else 0
         if p > 0.5:
             input_img = transforms.functional.hflip(input_img)
         input_img = transforms.functional.to_tensor(input_img)

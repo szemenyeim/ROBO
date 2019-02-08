@@ -26,63 +26,6 @@ def l1reg(model):
         regularization_loss += torch.sum(torch.abs(param))
     return regularization_loss
 
-def val(epoch):
-    #############
-    #####VAL#####
-    #############
-    lossx = 0
-    lossy = 0
-    lossw = 0
-    lossh = 0
-    lossconf = 0
-    lossreg = 0
-    losstotal = 0
-    recall = 0
-    prec = 0
-
-    model.eval()
-
-    bar = progressbar.ProgressBar(0, len(valLoader), redirect_stdout=False)
-
-    for batch_i, (_, imgs, targets) in enumerate(valLoader):
-        with torch.no_grad():
-            imgs = imgs.type(Tensor)
-            targets = targets.type(Tensor)
-
-            loss = model(imgs, targets)
-            reg = decay*l1reg(model)
-            loss += reg
-
-            bar.update(batch_i)
-
-            lossx += model.losses["x"]
-            lossy += model.losses["y"]
-            lossw += model.losses["w"]
-            lossh += model.losses["h"]
-            lossconf += model.losses["conf"]
-            lossreg += reg.item()
-            losstotal += loss.item()
-            recall += model.losses["recall"]
-            prec += model.losses["precision"]
-
-    bar.finish()
-    print(
-        "[Epoch Val %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, total %f, recall: %.5f, precision: %.5f]"
-        % (
-            epoch + 1,
-            epochs,
-            lossx / float(len(valLoader)),
-            lossy / float(len(valLoader)),
-            lossw / float(len(valLoader)),
-            lossh / float(len(valLoader)),
-            lossconf / float(len(valLoader)),
-            lossreg / float(len(valLoader)),
-            losstotal / float(len(valLoader)),
-            recall / float(len(valLoader)),
-            prec / float(len(valLoader)),
-        )
-    )
-
 def train(epoch,bestLoss, indices = None):
     #############
     ####TRAIN####
@@ -114,7 +57,8 @@ def train(epoch,bestLoss, indices = None):
         optimizer.zero_grad()
 
         loss = model(imgs, targets)
-        if finetune:
+        reg = Tensor([0.0])
+        if finetune and indices is None:
             reg = decay * l1reg(model)
             loss += reg
 
@@ -187,7 +131,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", help="Learning rate",
                         type=float, default=1e-3)
     parser.add_argument("--decay", help="Weight decay",
-                        type=float, default=1e-3)
+                        type=float, default=5e-4)
     opt = parser.parse_args()
 
     finetune = opt.finetune
@@ -240,9 +184,6 @@ if __name__ == '__main__':
     trainloader = torch.utils.data.DataLoader(
         ListDataset(train_path,img_size=img_size, train=True), batch_size=batch_size, shuffle=True, num_workers=n_cpu
     )
-    valLoader = torch.utils.data.DataLoader(
-        ListDataset(val_path,img_size=img_size, train=True), batch_size=batch_size, shuffle=False, num_workers=n_cpu
-    )
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
@@ -257,6 +198,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             indices = pruneModel(model.parameters())
 
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate*0.1)
         print("Finetuning")
 
         bestLoss = 0

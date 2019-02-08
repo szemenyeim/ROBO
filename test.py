@@ -46,15 +46,13 @@ if __name__ == '__main__':
 
     print(count_zero_weights(model))
 
-    '''with torch.no_grad():
-        pruneModel(model.parameters())
+    #with torch.no_grad():
+        #pruneModel(model.parameters())
 
     computations = model.get_computations()
 
     print(computations)
     print(sum(computations))
-
-    exit(0)'''
 
     if cuda:
         model = model.cuda()
