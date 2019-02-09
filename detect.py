@@ -38,8 +38,8 @@ if __name__ == '__main__':
     os.makedirs('output', exist_ok=True)
 
     # Set up model
-    model = ROBO(opt.config_path, img_size=opt.img_size)
-    model.load_weights(opt.weights_path)
+    model = ROBO()
+    model.load_state_dict(torch.load(opt.weights_path))
 
     print(count_zero_weights(model))
 

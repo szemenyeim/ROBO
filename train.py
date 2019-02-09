@@ -89,7 +89,6 @@ def train(epoch,bestLoss, indices = None):
         precs[0] += model.recprec[1]
         precs[1] += model.recprec[3]
 
-        model.seen += imgs.size(0)
     bar.finish()
     prune = count_zero_weights(model)
     print(
@@ -119,7 +118,7 @@ def train(epoch,bestLoss, indices = None):
 
     if bestLoss < (recall + prec):
         bestLoss = (recall + prec)
-        model.save_weights("checkpoints/%s.weights" % name)
+        torch.save(model.state_dict(), "checkpoints/%s.weights" % name)
 
     return bestLoss
 
@@ -131,12 +130,15 @@ if __name__ == '__main__':
     parser.add_argument("--lr", help="Learning rate",
                         type=float, default=1e-3)
     parser.add_argument("--decay", help="Weight decay",
-                        type=float, default=5e-4)
+                        type=float, default=1e-3)
+    parser.add_argument("--transfer", help="Layers to truly train",
+                        type=int, default=0)
     opt = parser.parse_args()
 
     finetune = opt.finetune
     learning_rate = opt.lr
     decay = opt.decay
+    transfer = opt.transfer if finetune else 0
 
     classPath = "data/robo.names"
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
@@ -150,9 +152,9 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    torch.random.manual_seed(12345678)
+    torch.random.manual_seed(1234)
     if cuda:
-        torch.cuda.manual_seed(12345678)
+        torch.cuda.manual_seed(1234)
 
 
     os.makedirs("output", exist_ok=True)
@@ -165,13 +167,14 @@ if __name__ == '__main__':
     train_path = data_config["train"]
     val_path = data_config["valid"]
 
-    # Get hyper parameters
-    hyperparams = parse_model_config(model_config_path)[0]
-
     # Initiate model
-    model = ROBO(model_config_path,img_size=img_size)
+    model = ROBO()
+    comp = model.get_computations()
+    print(comp)
+    print(sum(comp))
+
     if finetune:
-        model.load_weights(weights_path)
+        model.load_state_dict(torch.load(weights_path))
     else:
         model.apply(weights_init_normal)
 
@@ -182,19 +185,23 @@ if __name__ == '__main__':
 
     # Get dataloader
     trainloader = torch.utils.data.DataLoader(
-        ListDataset(train_path,img_size=img_size, train=True), batch_size=batch_size, shuffle=True, num_workers=n_cpu
+        ListDataset(train_path,img_size=img_size, train=True, augment=finetune), batch_size=batch_size, shuffle=True, num_workers=n_cpu
     )
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
-    optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
+    optimizer = torch.optim.Adam([
+                {'params': model.downPart[0:transfer].parameters(), 'lr': learning_rate*10},
+                {'params': model.downPart[transfer:].parameters()},
+                {'params': model.classifiers.parameters()}
+            ],lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,50)
 
     for epoch in range(epochs):
         bestLoss = train(epoch,bestLoss)
 
     if finetune:
-        model.load_weights("checkpoints/DBestFinetune.weights")
+        model.load_state_dict(torch.load("checkpoints/DBestFinetune.weights"))
         with torch.no_grad():
             indices = pruneModel(model.parameters())
 

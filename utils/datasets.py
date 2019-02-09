@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -43,45 +44,35 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, list_path, img_size=(384,512), pad=(0,0), train=True):
+    def __init__(self, list_path, img_size=(384,512), train=True, augment = False):
         with open(list_path, 'r') as file:
             self.img_files = file.readlines()
         self.label_files = [path.replace('images', 'labels').replace('.png', '.txt').replace('.jpg', '.txt') for path in self.img_files]
         self.img_shape = img_size
         self.max_objects = 50
-        self.pad = pad
         self.train = train
-        self.transform = transforms.Compose([
-            #transforms.Pad(pad,128),
-            transforms.Resize(img_size),
-            transforms.ColorJitter(0.3,0.3,0.3,0.1),
-            #transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-        ])
-        self.valTransform = transforms.Compose([
-            #transforms.Pad(pad,128),
-            transforms.Resize(img_size),
-            #transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-        ])
+        self.augment = augment if train else False
+        self.jitter = transforms.ColorJitter(0.3,0.3,0.3,0.1)
+        self.resize = transforms.Resize(img_size)
 
     def __getitem__(self, index):
 
         #---------
         #  Image
         #---------
-
         img_path = self.img_files[index % len(self.img_files)].rstrip()
-        img = Image.open(img_path).convert('RGB')
+        img = self.resize(Image.open(img_path).convert('RGB'))
 
         w, h = img.size
 
-        input_img = self.transform(img) if self.train else self.valTransform(img)
+        p = 0
+        if self.augment:
+            p = torch.rand(1).item()
+            if p > 0.5:
+                img = transforms.functional.hflip(img)
+            img = self.jitter(img)
 
-        p = np.random.rand() if self.train else 0
-        if p > 0.5:
-            input_img = transforms.functional.hflip(input_img)
-        input_img = transforms.functional.to_tensor(input_img)
-
-        padded_h, padded_w = h+2*self.pad[0],w+2*self.pad[1]
+        input_img = transforms.functional.to_tensor(img)
 
         #---------
         #  Label
@@ -97,20 +88,18 @@ class ListDataset(Dataset):
             if p > 0.5:
                 labels[:,1] = 1 - labels[:,1]
             # Extract coordinates for unpadded + unscaled image
-            x1 = w * (labels[:, 1] - labels[:, 3]/2)
+            '''x1 = w * (labels[:, 1] - labels[:, 3]/2)
             y1 = h * (labels[:, 2] - labels[:, 4]/2)
             x2 = w * (labels[:, 1] + labels[:, 3]/2)
             y2 = h * (labels[:, 2] + labels[:, 4]/2)
             # Adjust for added padding
-            x1 += self.pad[1]
-            y1 += self.pad[0]
-            x2 += self.pad[1]
-            y2 += self.pad[0]
+            x1 += pad[1]
+            y1 += pad[0]
+            x2 += pad[1]
+            y2 += pad[0]
             # Calculate ratios from coordinates
-            labels[:, 1] = ((x1 + x2) / 2) / padded_w
-            labels[:, 2] = ((y1 + y2) / 2) / padded_h
-            labels[:, 3] *= w / padded_w
-            labels[:, 4] *= h / padded_h
+            labels[:, 1] = np.clip((((x1 + x2) / 2) / w), a_min=0, a_max = 0.999)
+            labels[:, 2] = np.clip((((y1 + y2) / 2) / h), a_min=0, a_max = 0.999)'''
 
             smallLabels = np.array([lab for lab in labels if lab[0] < 2])
             bigLabels = np.array([lab for lab in labels if lab[0] >= 2])

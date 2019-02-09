@@ -10,7 +10,7 @@ import sys
 import time
 import datetime
 import argparse
-import tqdm
+import progressbar
 
 import torch
 from torch.utils.data import DataLoader
@@ -41,15 +41,15 @@ if __name__ == '__main__':
     num_classes = int(data_config["classes"])
 
     # Initiate model
-    model = ROBO(opt.model_config_path)
-    model.load_weights(opt.weights_path)
+    model = ROBO()
+    model.load_state_dict(torch.load(opt.weights_path))
 
     print(count_zero_weights(model))
 
     #with torch.no_grad():
         #pruneModel(model.parameters())
 
-    computations = model.get_computations()
+    computations = model.get_computations(True)
 
     print(computations)
     print(sum(computations))
@@ -70,7 +70,9 @@ if __name__ == '__main__':
     all_detections = []
     all_annotations = []
 
-    for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc="Detecting objects")):
+    bar = progressbar.ProgressBar(0, len(dataloader), redirect_stdout=False)
+
+    for batch_i, (_, imgs, targets) in enumerate(dataloader):
 
         imgs = Variable(imgs.type(Tensor))
 
@@ -112,7 +114,10 @@ if __name__ == '__main__':
                 for label in range(num_classes):
                     all_annotations[-1][label] = annotation_boxes[annotation_labels == label, :]
 
+        bar.update(batch_i)
+    bar.finish()
     mAPs = np.zeros((2,5))
+    APs = np.zeros((2,4,5))
     thresholds = np.array([[4,8,16,32,64],[0.75,0.5,0.25,0.1,0.05]])
     for useIoU in range(2):
         for threshIdx in range(5):
@@ -122,7 +127,7 @@ if __name__ == '__main__':
                 scores = []
                 num_annotations = 0
 
-                for i in tqdm.tqdm(range(len(all_annotations)), desc=f"Computing AP for class '{label}'"):
+                for i in range(len(all_annotations)):
                     detections = all_detections[i][label]
                     annotations = all_annotations[i][label]
 
@@ -181,10 +186,15 @@ if __name__ == '__main__':
                 average_precision = compute_ap(recall, precision)
                 average_precisions[label] = average_precision
 
-            print("Average Precisions:")
             for c, ap in average_precisions.items():
-                print(f"+ Class '{c}' - AP: {ap}")
+                APs[useIoU,c,threshIdx] = ap
 
             mAP = np.mean(list(average_precisions.values()))
             mAPs[useIoU,threshIdx] = mAP
-    print(mAPs)
+    for c in range(4):
+        print("Class %d:" % c)
+        for i in range(2):
+            print("Dist: " if i < 1 else "IoU: ",APs[i,c,:])
+    print("mAP:")
+    for i in range(2):
+        print("Dist: " if i < 1 else "IoU: ",mAPs[i,:])
