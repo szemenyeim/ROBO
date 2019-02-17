@@ -54,6 +54,9 @@ class ListDataset(Dataset):
         self.augment = augment if train else False
         self.jitter = transforms.ColorJitter(0.3,0.3,0.3,0.1)
         self.resize = transforms.Resize(img_size)
+        self.mean = [0.4638,-0.0303,-0.0188] if (augment or not train) else [0.3622,-0.0906,-0.2192]
+        self.std =  [0.4510,0.1677,0.1850] if (augment or not train) else [0.3111,0.21,0.3409]
+        self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
 
     def __getitem__(self, index):
 
@@ -72,7 +75,9 @@ class ListDataset(Dataset):
                 img = transforms.functional.hflip(img)
             img = self.jitter(img)
 
+        img = rgb2yuv(img)
         input_img = transforms.functional.to_tensor(img)
+        input_img = self.normalize(input_img)
 
         #---------
         #  Label

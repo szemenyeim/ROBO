@@ -20,20 +20,30 @@ from torch.autograd import Variable
 import torch.optim as optim
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch_size", type=int, default=64, help="size of each image batch")
     parser.add_argument("--model_config_path", type=str, default="config/robo-down-small.cfg", help="path to model config file")
     parser.add_argument("--data_config_path", type=str, default="config/roboFinetune.data", help="path to data config file")
-    parser.add_argument("--weights_path", type=str, default="checkpoints/DBestFinetunePruned.weights", help="path to weights file")
     parser.add_argument("--class_path", type=str, default="data/robo.names", help="path to class label file")
+    parser.add_argument('--batch_size', type=int, default=64, help='size of the batches')
     parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
     parser.add_argument("--conf_thres", type=float, default=0.5, help="object confidence threshold")
     parser.add_argument("--nms_thres", type=float, default=0.45, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=(384,512), help="size of each image dimension")
-    parser.add_argument("--use_cuda", type=bool, default=True, help="whether to use cuda if available")
+    parser.add_argument("--pruned", type=int, default=0, help="number of cpu threads to use during batch generation")
+    parser.add_argument("--transfer", help="Layers to truly train", type=int, default=0)
     opt = parser.parse_args()
 
-    cuda = torch.cuda.is_available() and opt.use_cuda
+    cuda = torch.cuda.is_available()
+
+    weights_path = "checkpoints/bestFinetune_t%d_.weights" % opt.transfer if opt.transfer != 0 else "checkpoints/bestFinetune.weights"
+
+    if opt.pruned > 0:
+        files = glob.glob("checkpoints/bestFinetune%d_*.weights" % opt.pruned)
+        if len(files) == 0:
+            print("No model saved with %d pruning" % opt.pruned)
+            exit(0)
+        else:
+            weights_path = files[0]
 
     # Get data configuration
     data_config = parse_data_config(opt.data_config_path)
@@ -42,7 +52,7 @@ if __name__ == '__main__':
 
     # Initiate model
     model = ROBO()
-    model.load_state_dict(torch.load(opt.weights_path))
+    model.load_state_dict(torch.load(weights_path))
 
     print(count_zero_weights(model))
 

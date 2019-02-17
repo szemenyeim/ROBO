@@ -113,8 +113,13 @@ def train(epoch,bestLoss, indices = None):
         )
     )
 
-    name = "DBestFinetune" if finetune else "DBest"
-    name = name + ("" if indices is None else "Pruned")
+    name = "bestFinetune" if finetune else "best"
+    if transfer != 0:
+        name += "_t%d_" % transfer
+    if indices is not None:
+        pruneP = round(prune * 100)
+        comp = round(sum(model.get_computations(True))/1000000)
+        name = name + ("%d_%d" %(pruneP,comp))
 
     if bestLoss < (recall + prec):
         bestLoss = (recall + prec)
@@ -130,24 +135,24 @@ if __name__ == '__main__':
     parser.add_argument("--lr", help="Learning rate",
                         type=float, default=1e-3)
     parser.add_argument("--decay", help="Weight decay",
-                        type=float, default=1e-3)
+                        type=float, default=2e-4)
     parser.add_argument("--transfer", help="Layers to truly train",
                         type=int, default=0)
     opt = parser.parse_args()
 
     finetune = opt.finetune
-    learning_rate = opt.lr
-    decay = opt.decay
     transfer = opt.transfer if finetune else 0
+    learning_rate = opt.lr if transfer == 0 else opt.lr
+    decay = opt.decay
 
     classPath = "data/robo.names"
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
     model_config_path = "config/robo-down-small.cfg"
     img_size = (384,512)
-    weights_path = "checkpoints/DBest.weights"
+    weights_path = "checkpoints/best.weights"
     n_cpu = 4
     batch_size = 64
-    epochs = 100 if finetune else 100
+    epochs = 100 if transfer == 0 else 150
     scheduler_step = 50 if finetune else 50
 
     cuda = torch.cuda.is_available()
@@ -195,13 +200,14 @@ if __name__ == '__main__':
                 {'params': model.downPart[transfer:].parameters()},
                 {'params': model.classifiers.parameters()}
             ],lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,50)
+    #scheduler = torch.optim.lr_scheduler.StepLR(optimizer,50)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs,eta_min=learning_rate/100)
 
     for epoch in range(epochs):
         bestLoss = train(epoch,bestLoss)
 
-    if finetune:
-        model.load_state_dict(torch.load("checkpoints/DBestFinetune.weights"))
+    if finetune and (transfer == 0):
+        model.load_state_dict(torch.load("checkpoints/bestFinetune.weights"))
         with torch.no_grad():
             indices = pruneModel(model.parameters())
 
@@ -210,5 +216,5 @@ if __name__ == '__main__':
 
         bestLoss = 0
 
-        for epoch in range(5):
+        for epoch in range(20):
             bestLoss = train(epoch, bestLoss, indices=indices)
