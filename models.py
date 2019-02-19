@@ -172,7 +172,7 @@ class YOLOLayer(nn.Module):
             return output
 
 class ROBO(nn.Module):
-    def __init__(self, inch=3, ch=4, img_shape=(384,512)):
+    def __init__(self, inch=3, ch=4, img_shape=(384,512), bn = False):
         super(ROBO,self).__init__()
 
         self.img_shape = img_shape
@@ -190,29 +190,52 @@ class ROBO(nn.Module):
             (29,118),
             (76,101),
         ]
-
-        self.downPart = nn.ModuleList([
-            Conv(inch,ch,2), # Stride: 2
-            Conv(ch,ch*2,2), # Stride: 4
-            Conv(ch*2,ch*4,2), # Stride: 8
-            Conv(ch*4,ch*4,1),
-            Conv(ch*4,ch*8,2), # Stride: 16
-            Conv(ch*8,ch*8,1),
-            Conv(ch*8,ch*16,2), # Stride: 32
-            Conv(ch*16,ch*16,1),
-            Conv(ch*16,ch*16,1),
-            Conv(ch*16,ch*16,1),
-            Conv(ch*16,ch*16,1), # First Classifier
-            Conv(ch*16,ch*32,2), # Stride: 64
-            Conv(ch*32,ch*16,1),
-            Conv(ch*16,ch*32,1),
-            Conv(ch*32,ch*16,1),
-            Conv(ch*16,ch*32,1) # Second Classifier
-        ])
-        self.classifiers = nn.ModuleList([
-            nn.Conv2d(ch*16,10,1),
-            nn.Conv2d(ch*32,10,1)
-        ])
+        if bn:
+            self.downPart = nn.ModuleList([
+                Conv(inch,ch,2), # Stride: 2
+                Conv(ch,ch*2,2), # Stride: 4
+                Conv(ch*2,ch*4,2), # Stride: 8
+                Conv(ch*4,ch*4,1),
+                Conv(ch*4,ch*8,2), # Stride: 16
+                Conv(ch*8,ch*8,1),
+                Conv(ch*8,ch*16,2), # Stride: 32
+                Conv(ch*16,ch*8,1,1),
+                Conv(ch*8,ch*32,1),
+                Conv(ch*32,ch*8,1,1),
+                Conv(ch*8,ch*32,1), # First Classifier
+                Conv(ch*32,ch*64,2), # Stride: 64
+                Conv(ch*64,ch*16,1,1),
+                Conv(ch*16,ch*64,1),
+                Conv(ch*64,ch*16,1,1),
+                Conv(ch*16,ch*64,1) # Second Classifier
+            ])
+            self.classifiers = nn.ModuleList([
+                nn.Conv2d(ch*32,10,1),
+                nn.Conv2d(ch*64,10,1)
+            ])
+        else:
+            self.downPart = nn.ModuleList([
+                Conv(inch,ch,2), # Stride: 2
+                Conv(ch,ch*2,2), # Stride: 4
+                Conv(ch*2,ch*4,2), # Stride: 8
+                Conv(ch*4,ch*4,1),
+                Conv(ch*4,ch*8,2), # Stride: 16
+                Conv(ch*8,ch*8,1),
+                Conv(ch*8,ch*16,2), # Stride: 32
+                Conv(ch*16,ch*16,1),
+                Conv(ch*16,ch*16,1),
+                Conv(ch*16,ch*16,1),
+                Conv(ch*16,ch*16,1), # First Classifier
+                Conv(ch*16,ch*32,2), # Stride: 64
+                Conv(ch*32,ch*16,1,1),
+                Conv(ch*16,ch*32,1),
+                Conv(ch*32,ch*16,1,1),
+                Conv(ch*16,ch*32,1) # Second Classifier
+            ])
+            self.classifiers = nn.ModuleList([
+                nn.Conv2d(ch*16,10,1),
+                nn.Conv2d(ch*32,10,1)
+            ])
         self.yolo = nn.ModuleList([
             YOLOLayer(self.anchors[0:2], 2, img_shape[0]),
             YOLOLayer(self.anchors[2:4], 2, img_shape[0])
