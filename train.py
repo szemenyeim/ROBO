@@ -46,7 +46,8 @@ def train(epoch,bestLoss, indices = None):
 
     model.train()
 
-    scheduler.step()
+    if indices is None:
+        scheduler.step()
 
     bar = progressbar.ProgressBar(0, len(trainloader), redirect_stdout=False)
 
@@ -58,7 +59,7 @@ def train(epoch,bestLoss, indices = None):
 
         loss = model(imgs, targets)
         reg = Tensor([0.0])
-        if finetune and indices is None:
+        if indices is None:
             reg = decay * l1reg(model)
             loss += reg
 
@@ -135,7 +136,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", help="Learning rate",
                         type=float, default=1e-3)
     parser.add_argument("--decay", help="Weight decay",
-                        type=float, default=2e-4)
+                        type=float, default=1e-5)
     parser.add_argument("--transfer", help="Layers to truly train",
                         type=int, default=0)
     opt = parser.parse_args()
@@ -152,7 +153,7 @@ if __name__ == '__main__':
     weights_path = "checkpoints/best.weights"
     n_cpu = 4
     batch_size = 64
-    epochs = 100 if transfer == 0 else 150
+    epochs = 125 if transfer == 0 else 150
     scheduler_step = 50 if finetune else 50
 
     cuda = torch.cuda.is_available()
@@ -190,7 +191,7 @@ if __name__ == '__main__':
 
     # Get dataloader
     trainloader = torch.utils.data.DataLoader(
-        ListDataset(train_path,img_size=img_size, train=True, augment=finetune), batch_size=batch_size, shuffle=True, num_workers=n_cpu
+        ListDataset(train_path,img_size=img_size, train=True, synth=finetune), batch_size=batch_size, shuffle=True, num_workers=n_cpu
     )
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -200,8 +201,10 @@ if __name__ == '__main__':
                 {'params': model.downPart[transfer:].parameters()},
                 {'params': model.classifiers.parameters()}
             ],lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     #scheduler = torch.optim.lr_scheduler.StepLR(optimizer,50)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs,eta_min=learning_rate/100)
+    eta_min = learning_rate/10 if finetune else learning_rate / 100
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs,eta_min=eta_min)
 
     for epoch in range(epochs):
         bestLoss = train(epoch,bestLoss)
@@ -211,10 +214,10 @@ if __name__ == '__main__':
         with torch.no_grad():
             indices = pruneModel(model.parameters())
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate*0.1)
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate*0.025)
         print("Finetuning")
 
         bestLoss = 0
 
-        for epoch in range(20):
+        for epoch in range(25):
             bestLoss = train(epoch, bestLoss, indices=indices)

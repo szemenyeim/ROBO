@@ -44,18 +44,18 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, list_path, img_size=(384,512), train=True, augment = False):
+    def __init__(self, list_path, img_size=(384,512), train=True, synth = False):
         with open(list_path, 'r') as file:
             self.img_files = file.readlines()
         self.label_files = [path.replace('images', 'labels').replace('.png', '.txt').replace('.jpg', '.txt') for path in self.img_files]
         self.img_shape = img_size
         self.max_objects = 50
         self.train = train
-        self.augment = augment if train else False
-        self.jitter = transforms.ColorJitter(0.3,0.3,0.3,0.1)
+        self.synth = synth
+        self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
         self.resize = transforms.Resize(img_size)
-        self.mean = [0.4638,-0.0303,-0.0188] if (augment or not train) else [0.3622,-0.0906,-0.2192]
-        self.std =  [0.4510,0.1677,0.1850] if (augment or not train) else [0.3111,0.21,0.3409]
+        self.mean = [0.4638,-0.0303,-0.0188] if synth else [0.3622,-0.0906,-0.2192]
+        self.std =  [0.4510,0.1677,0.1850] if synth else [0.3111,0.21,0.3409]
         self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
 
     def __getitem__(self, index):
@@ -69,14 +69,14 @@ class ListDataset(Dataset):
         w, h = img.size
 
         p = 0
-        if self.augment:
+        input_img = transforms.functional.to_tensor(img)
+        input_img = myRGB2YUV(input_img)
+        if self.train:
             p = torch.rand(1).item()
             if p > 0.5:
-                img = transforms.functional.hflip(img)
-            img = self.jitter(img)
+                input_img = input_img.flip(2)
+            input_img = self.jitter(input_img)
 
-        img = rgb2yuv(img)
-        input_img = transforms.functional.to_tensor(img)
         input_img = self.normalize(input_img)
 
         #---------
@@ -93,18 +93,18 @@ class ListDataset(Dataset):
             if p > 0.5:
                 labels[:,1] = 1 - labels[:,1]
             # Extract coordinates for unpadded + unscaled image
-            '''x1 = w * (labels[:, 1] - labels[:, 3]/2)
+            x1 = w * (labels[:, 1] - labels[:, 3]/2)
             y1 = h * (labels[:, 2] - labels[:, 4]/2)
             x2 = w * (labels[:, 1] + labels[:, 3]/2)
             y2 = h * (labels[:, 2] + labels[:, 4]/2)
             # Adjust for added padding
-            x1 += pad[1]
+            '''x1 += pad[1]
             y1 += pad[0]
             x2 += pad[1]
             y2 += pad[0]
-            # Calculate ratios from coordinates
+            # Calculate ratios from coordinates'''
             labels[:, 1] = np.clip((((x1 + x2) / 2) / w), a_min=0, a_max = 0.999)
-            labels[:, 2] = np.clip((((y1 + y2) / 2) / h), a_min=0, a_max = 0.999)'''
+            labels[:, 2] = np.clip((((y1 + y2) / 2) / h), a_min=0, a_max = 0.999)
 
             smallLabels = np.array([lab for lab in labels if lab[0] < 2])
             bigLabels = np.array([lab for lab in labels if lab[0] >= 2])
@@ -133,3 +133,28 @@ class ListDataset(Dataset):
 
     def __len__(self):
         return len(self.img_files)
+
+def myRGB2YUV(img):
+    mtx = torch.FloatTensor([[0.299,0.587,0.114],[-0.14713,-0.28886,0.436],[0.615,-0.51499,-0.10001]])
+    return torch.einsum('nm,mbc->nbc',mtx,img)
+
+class ColorJitter(object):
+    def __init__(self,b=0.3,c=0.3,s=0.3,h=3.1415/6):
+        super(ColorJitter,self).__init__()
+        self.b = b
+        self.c = c
+        self.s = s
+        self.h = h
+
+    def __call__(self, img):
+        b_val = random.uniform(-self.b,self.b)
+        c_val = random.uniform(1-self.c,1+self.c)
+        s_val = random.uniform(1-self.s,1+self.s)
+        h_val = random.uniform(-self.h,self.h)
+
+        mtx = torch.FloatTensor([[s_val*np.cos(h_val),-np.sin(h_val)],[np.sin(h_val),s_val*np.cos(h_val)]])
+
+        img[0] = (img[0]+b_val)*c_val
+        img[1:] = torch.einsum('nm,mbc->nbc',mtx,img[1:])
+
+        return img

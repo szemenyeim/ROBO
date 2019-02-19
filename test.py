@@ -21,7 +21,6 @@ import torch.optim as optim
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_config_path", type=str, default="config/robo-down-small.cfg", help="path to model config file")
-    parser.add_argument("--data_config_path", type=str, default="config/roboFinetune.data", help="path to data config file")
     parser.add_argument("--class_path", type=str, default="data/robo.names", help="path to class label file")
     parser.add_argument('--batch_size', type=int, default=64, help='size of the batches')
     parser.add_argument("--iou_thres", type=float, default=0.5, help="iou threshold required to qualify as detected")
@@ -31,11 +30,13 @@ if __name__ == '__main__':
     parser.add_argument("--img_size", type=int, default=(384,512), help="size of each image dimension")
     parser.add_argument("--pruned", type=int, default=0, help="number of cpu threads to use during batch generation")
     parser.add_argument("--transfer", help="Layers to truly train", type=int, default=0)
+    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
     opt = parser.parse_args()
 
     cuda = torch.cuda.is_available()
-
-    weights_path = "checkpoints/bestFinetune_t%d_.weights" % opt.transfer if opt.transfer != 0 else "checkpoints/bestFinetune.weights"
+    weights_path = "checkpoints/bestFinetune.weights" if opt.finetune else "checkpoints/best.weights"
+    data_config_path = "config/roboFinetune.data" if opt.finetune else "config/robo.data"
+    weights_path = "checkpoints/bestFinetune_t%d_.weights" % opt.transfer if opt.transfer != 0 else weights_path
 
     if opt.pruned > 0:
         files = glob.glob("checkpoints/bestFinetune%d_*.weights" % opt.pruned)
@@ -46,7 +47,7 @@ if __name__ == '__main__':
             weights_path = files[0]
 
     # Get data configuration
-    data_config = parse_data_config(opt.data_config_path)
+    data_config = parse_data_config(data_config_path)
     test_path = data_config["valid"]
     num_classes = int(data_config["classes"])
 
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     model.eval()
 
     # Get dataloader
-    dataset = ListDataset(test_path, train=False)
+    dataset = ListDataset(test_path, train=False, synth=opt.finetune)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor

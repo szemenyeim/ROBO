@@ -206,7 +206,7 @@ class ROBO(nn.Module):
             Conv(ch*16,ch*32,2), # Stride: 64
             Conv(ch*32,ch*16,1),
             Conv(ch*16,ch*32,1),
-            Conv(ch*32,ch*16,1,1),
+            Conv(ch*32,ch*16,1),
             Conv(ch*16,ch*32,1) # Second Classifier
         ])
         self.classifiers = nn.ModuleList([
