@@ -3,12 +3,10 @@ import math
 import time
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
 import numpy as np
+import glob
+from PIL import Image
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 
 
 def load_classes(path):
@@ -283,3 +281,25 @@ def bbox_dist(box1,boxes):
         cent2y = (box2[1] + box2[3]) / 2
         distances = np.append(distances,np.sqrt(pow(cent1x-cent2x,2) + pow(cent1y-cent2y,2)))
     return distances
+
+'''if __name__ =="__main__":
+    path = "E:/RoboCup/YOLO/Finetune/train/"
+
+    mtx =  (0.299, 0.587, 0.114, 0, -0.14713, -0.28886, 0.436, 128, 0.615, -0.51499, -0.10001, 128)
+
+    mean = np.zeros(3)
+    std = np.zeros(3)
+    cnt = 0
+
+    for img_p in glob.glob1(path, "*.png"):
+        img = Image.open(path + img_p)#.resize((512,384),Image.LANCZOS)
+        img = img.convert("RGB",mtx)
+        img_arr = np.array(img)/255
+        mean += np.mean(img_arr,(0,1))
+        std += np.std(img_arr,(0,1))
+        cnt += 1
+        img.save(path+img_p)
+        print(img_p)
+
+    print(mean/cnt)
+    print(np.sqrt(std/cnt))'''

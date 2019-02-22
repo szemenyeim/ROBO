@@ -177,6 +177,8 @@ class ROBO(nn.Module):
 
         self.img_shape = img_shape
 
+        self.bn = bn
+
         self.loss_names = ["x", "y", "w", "h", "conf", "cls", "recall", "precision"]
 
         self.branchLayers = [
@@ -191,27 +193,30 @@ class ROBO(nn.Module):
             (76,101),
         ]
         if bn:
+            ch *= 2
             self.downPart = nn.ModuleList([
                 Conv(inch,ch,2), # Stride: 2
                 Conv(ch,ch*2,2), # Stride: 4
                 Conv(ch*2,ch*4,2), # Stride: 8
-                Conv(ch*4,ch*4,1),
+                Conv(ch*4,ch*2,1,1),
+                Conv(ch*2,ch*4,1),
                 Conv(ch*4,ch*8,2), # Stride: 16
-                Conv(ch*8,ch*8,1),
+                Conv(ch*8,ch*4,1,1),
+                Conv(ch*4,ch*8,1),
                 Conv(ch*8,ch*16,2), # Stride: 32
                 Conv(ch*16,ch*8,1,1),
-                Conv(ch*8,ch*32,1),
-                Conv(ch*32,ch*8,1,1),
-                Conv(ch*8,ch*32,1), # First Classifier
-                Conv(ch*32,ch*64,2), # Stride: 64
-                Conv(ch*64,ch*16,1,1),
-                Conv(ch*16,ch*64,1),
-                Conv(ch*64,ch*16,1,1),
-                Conv(ch*16,ch*64,1) # Second Classifier
+                Conv(ch*8,ch*16,1),
+                Conv(ch*16,ch*8,1,1),
+                Conv(ch*8,ch*16,1), # First Classifier
+                Conv(ch*16,ch*32,2), # Stride: 64
+                Conv(ch*32,ch*16,1,1),
+                Conv(ch*16,ch*32,1),
+                Conv(ch*32,ch*16,1,1),
+                Conv(ch*16,ch*32,1) # Second Classifier
             ])
             self.classifiers = nn.ModuleList([
-                nn.Conv2d(ch*32,10,1),
-                nn.Conv2d(ch*64,10,1)
+                nn.Conv2d(ch*16,10,1),
+                nn.Conv2d(ch*32,10,1)
             ])
         else:
             self.downPart = nn.ModuleList([
@@ -227,9 +232,9 @@ class ROBO(nn.Module):
                 Conv(ch*16,ch*16,1),
                 Conv(ch*16,ch*16,1), # First Classifier
                 Conv(ch*16,ch*32,2), # Stride: 64
-                Conv(ch*32,ch*16,1,1),
+                Conv(ch*32,ch*16,1),
                 Conv(ch*16,ch*32,1),
-                Conv(ch*32,ch*16,1,1),
+                Conv(ch*32,ch*16,1),
                 Conv(ch*16,ch*32,1) # Second Classifier
             ])
             self.classifiers = nn.ModuleList([
@@ -283,8 +288,8 @@ class ROBO(nn.Module):
             computations.append(comp * ratio)
 
         H, W = self.img_shape[0] // 32, self.img_shape[1] // 32
-        computations.append(H*W*64*10*2)
-        computations.append(H*W*128*10//2)
+        computations.append(H*W*64*10*2 * (2 if self.bn else 1))
+        computations.append(H*W*128*10//2 * (2 if self.bn else 1))
 
         return computations
 

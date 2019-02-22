@@ -54,8 +54,8 @@ class ListDataset(Dataset):
         self.synth = synth
         self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
         self.resize = transforms.Resize(img_size)
-        self.mean = [0.4638,-0.0303,-0.0188] if synth else [0.3622,-0.0906,-0.2192]
-        self.std =  [0.4510,0.1677,0.1850] if synth else [0.3111,0.21,0.3409]
+        self.mean = [0.4637419,  0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
+        self.std = [0.45211827, 0.16890674, 0.18645908] if synth else [0.3132638,  0.21061972, 0.34144647]
         self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
 
     def __getitem__(self, index):
@@ -64,25 +64,22 @@ class ListDataset(Dataset):
         #  Image
         #---------
         img_path = self.img_files[index % len(self.img_files)].rstrip()
-        img = self.resize(Image.open(img_path).convert('RGB'))
+        img = Image.open(img_path)
 
         w, h = img.size
 
         p = 0
         input_img = transforms.functional.to_tensor(img)
-        input_img = myRGB2YUV(input_img)
+        input_img = self.normalize(input_img)
         if self.train:
             p = torch.rand(1).item()
             if p > 0.5:
                 input_img = input_img.flip(2)
             input_img = self.jitter(input_img)
 
-        input_img = self.normalize(input_img)
-
         #---------
         #  Label
         #---------
-
         label_path = self.label_files[index % len(self.img_files)].rstrip()
 
         labels = None

@@ -6,16 +6,10 @@ from utils.datasets import *
 from utils.parse_config import *
 
 import os
-import sys
-import time
-import datetime
 import argparse
 
 import torch
 from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision import transforms
-from torch.autograd import Variable
 import torch.optim as optim
 
 import progressbar
@@ -93,10 +87,11 @@ def train(epoch,bestLoss, indices = None):
     bar.finish()
     prune = count_zero_weights(model)
     print(
-        "[Epoch Train %d/%d][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, pruned %f, total %f, recall: %.5f (%.5f / %.5f), precision: %.5f (%.5f / %.5f)]"
+        "[Epoch Train %d/%d lr: %.4f][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, pruned %f, total %f, recall: %.5f (%.5f / %.5f), precision: %.5f (%.5f / %.5f)]"
         % (
             epoch + 1,
             epochs,
+            scheduler.get_lr()[-1]/learning_rate,
             lossx / float(len(trainloader)),
             lossy / float(len(trainloader)),
             lossw / float(len(trainloader)),
@@ -115,8 +110,9 @@ def train(epoch,bestLoss, indices = None):
     )
 
     name = "bestFinetune" if finetune else "best"
+    name +=  "BN" if opt.bn else ""
     if transfer != 0:
-        name += "_t%d_" % transfer
+        name += "T%d" % transfer
     if indices is not None:
         pruneP = round(prune * 100)
         comp = round(sum(model.get_computations(True))/1000000)
@@ -136,32 +132,26 @@ if __name__ == '__main__':
     parser.add_argument("--lr", help="Learning rate",
                         type=float, default=1e-3)
     parser.add_argument("--decay", help="Weight decay",
-                        type=float, default=1e-5)
+                        type=float, default=1e-4)
     parser.add_argument("--transfer", help="Layers to truly train",
-                        type=int, default=0)
+                        action="store_true")
+    parser.add_argument("--bn", help="Use bottleneck",
+                        action="store_true")
     opt = parser.parse_args()
 
     finetune = opt.finetune
-    transfer = opt.transfer if finetune else 0
-    learning_rate = opt.lr if transfer == 0 else opt.lr
-    decay = opt.decay
+    learning_rate = opt.lr/2 if opt.transfer else opt.lr
+    dec = opt.decay if finetune else opt.decay/10
+    transfers = ([3, 5, 8, 11] if opt.bn else [3, 5, 7, 9]) if opt.transfer else [0]
+    decays = [2e-3, 1e-3, 5e-4, 2.5e-4, 1e-4] if (finetune and not opt.transfer) else [dec]
 
     classPath = "data/robo.names"
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
-    model_config_path = "config/robo-down-small.cfg"
     img_size = (384,512)
-    weights_path = "checkpoints/best.weights"
+    weights_path = "checkpoints/best%s.weights" % ("BN" if opt.bn else "")
     n_cpu = 4
     batch_size = 64
-    epochs = 125 if transfer == 0 else 150
-    scheduler_step = 50 if finetune else 50
-
-    cuda = torch.cuda.is_available()
-
-    torch.random.manual_seed(1234)
-    if cuda:
-        torch.cuda.manual_seed(1234)
-
+    epochs = 125 if opt.transfer == 0 else 150
 
     os.makedirs("output", exist_ok=True)
     os.makedirs("checkpoints", exist_ok=True)
@@ -173,51 +163,57 @@ if __name__ == '__main__':
     train_path = data_config["train"]
     val_path = data_config["valid"]
 
-    # Initiate model
-    model = ROBO()
-    comp = model.get_computations()
-    print(comp)
-    print(sum(comp))
-
-    if finetune:
-        model.load_state_dict(torch.load(weights_path))
-    else:
-        model.apply(weights_init_normal)
-
-    if cuda:
-        model = model.cuda()
-
-    bestLoss = 0
+    cuda = torch.cuda.is_available()
+    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
     # Get dataloader
     trainloader = torch.utils.data.DataLoader(
         ListDataset(train_path,img_size=img_size, train=True, synth=finetune), batch_size=batch_size, shuffle=True, num_workers=n_cpu
     )
 
-    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+    for transfer in transfers:
+        for decay in decays:
 
-    optimizer = torch.optim.Adam([
-                {'params': model.downPart[0:transfer].parameters(), 'lr': learning_rate*10},
-                {'params': model.downPart[transfer:].parameters()},
-                {'params': model.classifiers.parameters()}
-            ],lr=learning_rate)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    #scheduler = torch.optim.lr_scheduler.StepLR(optimizer,50)
-    eta_min = learning_rate/10 if finetune else learning_rate / 100
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs,eta_min=eta_min)
+            torch.random.manual_seed(1234)
+            if cuda:
+                torch.cuda.manual_seed(1234)
 
-    for epoch in range(epochs):
-        bestLoss = train(epoch,bestLoss)
+            # Initiate model
+            model = ROBO(bn=opt.bn)
+            comp = model.get_computations()
+            print(comp)
+            print(sum(comp))
 
-    if finetune and (transfer == 0):
-        model.load_state_dict(torch.load("checkpoints/bestFinetune.weights"))
-        with torch.no_grad():
-            indices = pruneModel(model.parameters())
+            if finetune:
+                model.load_state_dict(torch.load(weights_path))
+            else:
+                model.apply(weights_init_normal)
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate*0.025)
-        print("Finetuning")
+            if cuda:
+                model = model.cuda()
 
-        bestLoss = 0
+            bestLoss = 0
 
-        for epoch in range(25):
-            bestLoss = train(epoch, bestLoss, indices=indices)
+            optimizer = torch.optim.Adam([
+                        {'params': model.downPart[0:transfer].parameters(), 'lr': learning_rate*10},
+                        {'params': model.downPart[transfer:].parameters()},
+                        {'params': model.classifiers.parameters()}
+                    ],lr=learning_rate)
+            eta_min = learning_rate/25 if opt.transfer else learning_rate/20
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs,eta_min=eta_min)
+
+            for epoch in range(epochs):
+                bestLoss = train(epoch,bestLoss)
+
+            if finetune and (transfer == 0):
+                model.load_state_dict(torch.load("checkpoints/bestFinetune%s.weights" % ("BN" if opt.bn else "")))
+                with torch.no_grad():
+                    indices = pruneModel(model.parameters())
+
+                optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/40)
+                print("Finetuning")
+
+                bestLoss = 0
+
+                for epoch in range(25):
+                    bestLoss = train(epoch, bestLoss, indices=indices)
