@@ -1,6 +1,0 @@
-classes= 54
-train=D:/data/trafficYolo/train.txt
-valid=D:/data/trafficYolo/test.txt
-names=data/traffic.names
-backup=backup/
-eval=coco

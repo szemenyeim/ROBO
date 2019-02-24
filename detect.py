@@ -20,8 +20,6 @@ import progressbar
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image_folder', type=str, default='E:/RoboCup/YOLO/Finetune/test/', help='path to dataset')
-    parser.add_argument('--config_path', type=str, default='config/robo-down-small.cfg', help='path to model config file')
     parser.add_argument('--weights_path', type=str, default='checkpoints/DBestFinetunePruned.weights', help='path to weights file')
     parser.add_argument('--class_path', type=str, default='data/robo.names', help='path to class label file')
     parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
@@ -29,17 +27,24 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64, help='size of the batches')
     parser.add_argument('--n_cpu', type=int, default=4, help='number of cpu threads to use during batch generation')
     parser.add_argument('--img_size', type=int, default=(384,512), help='size of each image dimension')
-    parser.add_argument('--use_cuda', type=bool, default=True, help='whether to use cuda if available')
+    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
+    parser.add_argument("--bn", help="Use bottleneck", action="store_true", default=False)
     opt = parser.parse_args()
     print(opt)
 
-    cuda = torch.cuda.is_available() and opt.use_cuda
+    cuda = torch.cuda.is_available()
+
+    image_folder = "E:/RoboCup/YOLO/Finetune/test/" if opt.finetune else "E:/RoboCup/YOLO/Test/"
+
+    weights_path = "checkpoints/bestFinetune" if opt.finetune else "checkpoints/best"
+
+    weights_path += "BN.weights" if opt.bn else ".weights"
 
     os.makedirs('output', exist_ok=True)
 
     # Set up model
-    model = ROBO()
-    model.load_state_dict(torch.load(opt.weights_path))
+    model = ROBO(bn=opt.bn)
+    model.load_state_dict(torch.load(weights_path))
 
     print(count_zero_weights(model))
 
@@ -48,7 +53,7 @@ if __name__ == '__main__':
 
     model.eval() # Set in evaluation mode
 
-    dataloader = DataLoader(ImageFolder(opt.image_folder, img_size=opt.img_size, type='%s/*.png'),
+    dataloader = DataLoader(ImageFolder(image_folder, synth=opt.finetune, type='%s/*.png'),
                             batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
     classes = load_classes(opt.class_path) # Extracts class labels from file
@@ -95,27 +100,28 @@ if __name__ == '__main__':
         unpad_h = opt.img_size[0] - pad_y
         unpad_w = opt.img_size[1] - pad_x
 
+        img = cv2.cvtColor(img,cv2.COLOR_YCrCb2BGR)
+
         # Draw bounding boxes and labels of detections
         if detections is not None:
             unique_labels = detections[:, -1].cpu().unique()
             n_cls_preds = len(unique_labels)
-            bbox_colors = [(255,0,0),(255,0,255),(0,0,255),(255,255,0)]
+            bbox_colors = [(0,0,255),(255,0,255),(255,0,0),(0,255,255)]
             for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
 
                 # Rescale coordinates to original dimensions
                 box_h = ((y2 - y1) / unpad_h) * img.shape[0]
                 box_w = ((x2 - x1) / unpad_w) * img.shape[1]
-                y1 = (y1 - pad_y // 2) * 1.25
-                x1 = (x1 - pad_x // 2) * 1.25
-                y2 = (y2 - pad_y // 2) * 1.25
-                x2 = (x2 - pad_x // 2) * 1.25
+                y1 = (y1 - pad_y // 2) * 1
+                x1 = (x1 - pad_x // 2) * 1
+                y2 = (y2 - pad_y // 2) * 1
+                x2 = (x2 - pad_x // 2) * 1
 
                 color = bbox_colors[int(cls_pred)]
                 # Create a Rectangle patch
                 cv2.rectangle(img,(x1,y1),(x2,y2),color,2)
 
         # Save generated image with detections
-        img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
         cv2.imwrite('output/%d.png' % (img_i),img)
         bar.update(img_i)
     bar.finish()

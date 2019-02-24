@@ -2,18 +2,9 @@ from __future__ import division
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-import numpy as np
 
-from PIL import Image
-
-from utils.parse_config import *
 from utils.utils import build_targets
 from collections import defaultdict
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 
 class Conv(nn.Module):
     def __init__(self,inch,ch,stride=1,size=3,doBN = True):

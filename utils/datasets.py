@@ -10,30 +10,20 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-from skimage.transform import resize
-from skimage.color import rgb2yuv
-
-import sys
 
 class ImageFolder(Dataset):
-    def __init__(self, folder_path, img_size=(384,512), type = '%s/*.*', pad=(0,0)):
+    def __init__(self, folder_path, type = '%s/*.*', synth = False):
         self.files = sorted(glob.glob(type % folder_path))
-        self.img_shape = img_size
-        self.pad = pad
+        self.mean = [0.4637419, 0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
+        self.std = [0.45211827, 0.16890674, 0.18645908] if synth else [0.3132638, 0.21061972, 0.34144647]
         self.transform = transforms.Compose([
-            # transforms.Pad(pad, 128),
-            transforms.Resize(img_size),
-            # transforms.ColorJitter(0.2,0.2,0.2,0.2),
             transforms.ToTensor(),
-            # transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=self.mean,std=self.std)
         ])
 
     def __getitem__(self, index):
         img_path = self.files[index % len(self.files)].rstrip()
-        img = Image.open(img_path).convert('RGB')
+        img = Image.open(img_path)
 
         input_img = self.transform(img)
 
@@ -54,8 +44,8 @@ class ListDataset(Dataset):
         self.synth = synth
         self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
         self.resize = transforms.Resize(img_size)
-        self.mean = [0.4637419,  0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
-        self.std = [0.45211827, 0.16890674, 0.18645908] if synth else [0.3132638,  0.21061972, 0.34144647]
+        self.mean = [0.4637419, 0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
+        self.std = [0.45211827, 0.16890674, 0.18645908] if synth else [0.3132638, 0.21061972, 0.34144647]
         self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
 
     def __getitem__(self, index):
