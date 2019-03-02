@@ -12,8 +12,9 @@ import torchvision.transforms.functional as F
 
 
 class ImageFolder(Dataset):
-    def __init__(self, folder_path, type = '%s/*.*', synth = False):
+    def __init__(self, folder_path, type = '%s/*.*', synth = False, grayscale = False):
         self.files = sorted(glob.glob(type % folder_path))
+        self.grayscale = grayscale
         self.mean = [0.4637419, 0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
         self.std = [0.45211827, 0.16890674, 0.18645908] if synth else [0.3132638, 0.21061972, 0.34144647]
         self.transform = transforms.Compose([
@@ -27,6 +28,10 @@ class ImageFolder(Dataset):
 
         input_img = self.transform(img)
 
+        if self.grayscale:
+            input_img[1] = input_img[2]*0.5 + input_img[1]*0.5
+            input_img = input_img[0:2]
+
         return img_path, input_img
 
     def __len__(self):
@@ -34,7 +39,7 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, list_path, img_size=(384,512), train=True, synth = False):
+    def __init__(self, list_path, img_size=(384,512), train=True, synth = False, grayscale=False):
         with open(list_path, 'r') as file:
             self.img_files = file.readlines()
         self.label_files = [path.replace('images', 'labels').replace('.png', '.txt').replace('.jpg', '.txt') for path in self.img_files]
@@ -42,6 +47,7 @@ class ListDataset(Dataset):
         self.max_objects = 50
         self.train = train
         self.synth = synth
+        self.grayscale = grayscale
         self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
         self.resize = transforms.Resize(img_size)
         self.mean = [0.4637419, 0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
@@ -67,6 +73,9 @@ class ListDataset(Dataset):
                 input_img = input_img.flip(2)
             input_img = self.jitter(input_img)
 
+        if self.grayscale:
+            input_img[1] = input_img[2]*0.5 + input_img[1]*0.5
+            input_img = input_img[0:2]
         #---------
         #  Label
         #---------
@@ -142,6 +151,7 @@ class ColorJitter(object):
         mtx = torch.FloatTensor([[s_val*np.cos(h_val),-np.sin(h_val)],[np.sin(h_val),s_val*np.cos(h_val)]])
 
         img[0] = (img[0]+b_val)*c_val
-        img[1:] = torch.einsum('nm,mbc->nbc',mtx,img[1:])
+        if self.s > 0 and self.h > 0:
+            img[1:] = torch.einsum('nm,mbc->nbc',mtx,img[1:])
 
         return img

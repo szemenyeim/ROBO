@@ -10,6 +10,8 @@ def saveParams( path, model, fName="weights.dat" ):
     Dict = model.state_dict()
     for name in Dict:
         param = Dict[name].numpy()
+        if "num_batches" in name:
+            continue
         param = param.reshape(param.size)
         params = np.concatenate((params, param))
     params.tofile(path+"/"+fName)
@@ -18,7 +20,7 @@ if __name__ == "__main__":
 
     path = "checkpoints/bestFinetune88_60.weights"
 
-    model = ROBO()
+    model = ROBO(bn=False)
     model.load_state_dict(torch.load(path))
 
-    saveParams("checkpoints/",model)
+    saveParams("checkpoints/",model,fName="weights.dat")

@@ -110,6 +110,7 @@ def train(epoch,bestLoss, indices = None):
     )
 
     name = "bestFinetune" if finetune else "best"
+    name +=  "GS" if opt.grayscale else ""
     name +=  "BN" if opt.bn else ""
     if transfer != 0:
         name += "T%d" % transfer
@@ -137,6 +138,8 @@ if __name__ == '__main__':
                         action="store_true")
     parser.add_argument("--bn", help="Use bottleneck",
                         action="store_true")
+    parser.add_argument("--grayscale", help="Use grayscale images",
+                        action="store_true")
     opt = parser.parse_args()
 
     finetune = opt.finetune
@@ -148,9 +151,10 @@ if __name__ == '__main__':
     classPath = "data/robo.names"
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
     img_size = (384,512)
-    weights_path = "checkpoints/best%s.weights" % ("BN" if opt.bn else "")
+    weights_path = "checkpoints/best%s%s.weights" % ("GS" if opt.grayscale else "","BN" if opt.bn else "")
     n_cpu = 4
     batch_size = 64
+    channels = 2 if opt.grayscale else 3
     epochs = 125 if opt.transfer == 0 else 150
 
     os.makedirs("output", exist_ok=True)
@@ -168,7 +172,7 @@ if __name__ == '__main__':
 
     # Get dataloader
     trainloader = torch.utils.data.DataLoader(
-        ListDataset(train_path,img_size=img_size, train=True, synth=finetune), batch_size=batch_size, shuffle=True, num_workers=n_cpu
+        ListDataset(train_path,img_size=img_size, train=True, synth=finetune, grayscale=opt.grayscale), batch_size=batch_size, shuffle=True, num_workers=n_cpu
     )
 
     for transfer in transfers:
@@ -179,15 +183,13 @@ if __name__ == '__main__':
                 torch.cuda.manual_seed(1234)
 
             # Initiate model
-            model = ROBO(bn=opt.bn)
+            model = ROBO(inch=channels,bn=opt.bn)
             comp = model.get_computations()
             print(comp)
             print(sum(comp))
 
             if finetune:
                 model.load_state_dict(torch.load(weights_path))
-            else:
-                model.apply(weights_init_normal)
 
             if cuda:
                 model = model.cuda()
@@ -206,7 +208,7 @@ if __name__ == '__main__':
                 bestLoss = train(epoch,bestLoss)
 
             if finetune and (transfer == 0):
-                model.load_state_dict(torch.load("checkpoints/bestFinetune%s.weights" % ("BN" if opt.bn else "")))
+                model.load_state_dict(torch.load("checkpoints/bestFinetune%s%s.weights" % ("GS" if opt.grayscale else "","BN" if opt.bn else "")))
                 with torch.no_grad():
                     indices = pruneModel(model.parameters())
 

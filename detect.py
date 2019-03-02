@@ -24,11 +24,12 @@ if __name__ == '__main__':
     parser.add_argument('--class_path', type=str, default='data/robo.names', help='path to class label file')
     parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
     parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold for non-maximum suppression')
-    parser.add_argument('--batch_size', type=int, default=64, help='size of the batches')
+    parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
     parser.add_argument('--n_cpu', type=int, default=4, help='number of cpu threads to use during batch generation')
     parser.add_argument('--img_size', type=int, default=(384,512), help='size of each image dimension')
     parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
     parser.add_argument("--bn", help="Use bottleneck", action="store_true", default=False)
+    parser.add_argument("--grayscale", help="Use grayscale images", action="store_true", default=False)
     opt = parser.parse_args()
     print(opt)
 
@@ -36,14 +37,18 @@ if __name__ == '__main__':
 
     image_folder = "E:/RoboCup/YOLO/Finetune/test/" if opt.finetune else "E:/RoboCup/YOLO/Test/"
 
-    weights_path = "checkpoints/bestFinetune" if opt.finetune else "checkpoints/best"
+    weights_path = "checkpoints/bestFinetune88_60" if opt.finetune else "checkpoints/best"
+
+    if opt.grayscale:
+        weights_path += "GS"
 
     weights_path += "BN.weights" if opt.bn else ".weights"
 
     os.makedirs('output', exist_ok=True)
 
     # Set up model
-    model = ROBO(bn=opt.bn)
+    channels = 2 if opt.grayscale else 3
+    model = ROBO(inch=channels,bn=opt.bn)
     model.load_state_dict(torch.load(weights_path))
 
     print(count_zero_weights(model))
@@ -53,7 +58,7 @@ if __name__ == '__main__':
 
     model.eval() # Set in evaluation mode
 
-    dataloader = DataLoader(ImageFolder(image_folder, synth=opt.finetune, type='%s/*.png'),
+    dataloader = DataLoader(ImageFolder(image_folder, synth=opt.finetune, type='%s/*.png', grayscale=opt.grayscale),
                             batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
     classes = load_classes(opt.class_path) # Extracts class labels from file
@@ -67,15 +72,17 @@ if __name__ == '__main__':
 
     print ('\nPerforming object detection:')
     bar = progressbar.ProgressBar(0, len(dataloader), redirect_stdout=False)
+    elapsed_time = 0
     for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
         # Configure input
-        input_imgs = Variable(input_imgs.type(Tensor))
+        input_imgs = input_imgs.type(Tensor)
 
         # Get detections
         with torch.no_grad():
+            start_time = time.time()
             detections = model(input_imgs)
+            elapsed_time += time.time() - start_time
             detections = non_max_suppression(detections, 80, opt.conf_thres, opt.nms_thres)
-
 
         # Log progress
         bar.update(batch_i)
@@ -85,6 +92,7 @@ if __name__ == '__main__':
         img_detections.extend(detections)
 
     bar.finish()
+    print("\nAverage time: %.2f" % (elapsed_time*1000/len(dataloader)))
     print ('\nSaving images:')
     # Iterate through images and save plot of detections
     bar = progressbar.ProgressBar(0, len(imgs), redirect_stdout=False)

@@ -22,10 +22,11 @@ if __name__ == '__main__':
     parser.add_argument("--nms_thres", type=float, default=0.45, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=(384,512), help="size of each image dimension")
-    parser.add_argument("--pruned", action="store_true",help="Pruned Version", default=False)
-    parser.add_argument("--transfer", help="Layers to truly train", action="store_true", default=True)
+    parser.add_argument("--pruned", action="store_true",help="Pruned Version", default=True)
+    parser.add_argument("--transfer", help="Layers to truly train", action="store_true", default=False)
     parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
     parser.add_argument("--bn", help="Use bottleneck", action="store_true", default=False)
+    parser.add_argument("--grayscale", help="Use grayscale images", action="store_true", default=True)
     opt = parser.parse_args()
 
     cuda = torch.cuda.is_available()
@@ -33,6 +34,8 @@ if __name__ == '__main__':
     data_config_path = "config/roboFinetune.data" if opt.finetune else "config/robo.data"
 
     name = "checkpoints/bestFinetune" if opt.finetune else "checkpoints/best"
+    if opt.grayscale:
+        name += "GS"
     if opt.bn:
         name += "BN"
 
@@ -49,11 +52,12 @@ if __name__ == '__main__':
     data_config = parse_data_config(data_config_path)
     test_path = data_config["valid"]
     num_classes = int(data_config["classes"])
+    channels = 2 if opt.grayscale else 3
 
     # Initiate model
     for path in weights_path:
         print(path)
-        model = ROBO(bn=opt.bn)
+        model = ROBO(inch=channels,bn=opt.bn)
         model.load_state_dict(torch.load(path))
 
         print(count_zero_weights(model))
@@ -72,7 +76,7 @@ if __name__ == '__main__':
         model.eval()
 
         # Get dataloader
-        dataset = ListDataset(test_path, train=False, synth=opt.finetune)
+        dataset = ListDataset(test_path, train=False, synth=opt.finetune, grayscale=opt.grayscale)
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
         Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
