@@ -20,7 +20,7 @@ def l1reg(model):
         regularization_loss += torch.sum(torch.abs(param))
     return regularization_loss
 
-def train(epoch,bestLoss, indices = None):
+def train(epoch,epochs,bestLoss,indices = None):
     #############
     ####TRAIN####
     #############
@@ -110,8 +110,9 @@ def train(epoch,bestLoss, indices = None):
     )
 
     name = "bestFinetune" if finetune else "best"
-    name +=  "GS" if opt.grayscale else ""
+    name +=  "2C" if opt.yu else ""
     name +=  "BN" if opt.bn else ""
+    name +=  "HR" if opt.hr else ""
     if transfer != 0:
         name += "T%d" % transfer
     if indices is not None:
@@ -120,7 +121,39 @@ def train(epoch,bestLoss, indices = None):
         name = name + ("%d_%d" %(pruneP,comp))
 
     if bestLoss < (recall + prec):
+        print("Saving best model")
         bestLoss = (recall + prec)
+        torch.save(model.state_dict(), "checkpoints/%s.weights" % name)
+
+    return bestLoss
+
+
+def valid(epoch,epochs,bestLoss,pruned):
+    #############
+    ####VALID####
+    #############
+
+    model.eval()
+
+    mAP = computeAP(model,valloader,0.5,0.45,4,(384,512),False,32)
+    prune = count_zero_weights(model)
+
+    name = "bestFinetune" if finetune else "best"
+    name +=  "2C" if opt.yu else ""
+    name +=  "BN" if opt.bn else ""
+    name +=  "HR" if opt.hr else ""
+    if transfer != 0:
+        name += "T%d" % transfer
+    if pruned:
+        pruneP = round(prune * 100)
+        comp = round(sum(model.get_computations(True))/1000000)
+        name = name + ("%d_%d" %(pruneP,comp))
+
+    print("[Epoch Val %d/%d mAP: %.4f]" % (epoch + 1,epochs,mAP))
+
+    if bestLoss < (mAP):
+        print("Saving best model")
+        bestLoss = (mAP)
         torch.save(model.state_dict(), "checkpoints/%s.weights" % name)
 
     return bestLoss
@@ -128,18 +161,13 @@ def train(epoch,bestLoss, indices = None):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--finetune", help="Finetuning",
-                        action="store_true")
-    parser.add_argument("--lr", help="Learning rate",
-                        type=float, default=1e-3)
-    parser.add_argument("--decay", help="Weight decay",
-                        type=float, default=1e-4)
-    parser.add_argument("--transfer", help="Layers to truly train",
-                        action="store_true")
-    parser.add_argument("--bn", help="Use bottleneck",
-                        action="store_true")
-    parser.add_argument("--grayscale", help="Use grayscale images",
-                        action="store_true")
+    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=False)
+    parser.add_argument("--lr", help="Learning rate", type=float, default=1e-3)
+    parser.add_argument("--decay", help="Weight decay", type=float, default=1e-4)
+    parser.add_argument("--transfer", help="Layers to truly train", action="store_true")
+    parser.add_argument("--bn", help="Use bottleneck", action="store_true")
+    parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=False)
+    parser.add_argument("--hr", help="Use half res", action="store_true", default=False)
     opt = parser.parse_args()
 
     finetune = opt.finetune
@@ -147,14 +175,16 @@ if __name__ == '__main__':
     dec = opt.decay if finetune else opt.decay/10
     transfers = ([3, 5, 8, 11] if opt.bn else [3, 5, 7, 9]) if opt.transfer else [0]
     decays = [2e-3, 1e-3, 5e-4, 2.5e-4, 1e-4] if (finetune and not opt.transfer) else [dec]
+    decays = [2e-3]
+    halfRes = opt.hr
 
     classPath = "data/robo.names"
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
-    img_size = (384,512)
-    weights_path = "checkpoints/best%s%s.weights" % ("GS" if opt.grayscale else "","BN" if opt.bn else "")
+    img_size = (192,256) if halfRes else (384,512)
+    weights_path = "checkpoints/best%s%s%s.weights" % ("2C" if opt.yu else "","BN" if opt.bn else "", "HR" if opt.hr else "")
     n_cpu = 4
     batch_size = 64
-    channels = 2 if opt.grayscale else 3
+    channels = 2 if opt.yu else 3
     epochs = 125 if opt.transfer == 0 else 150
 
     os.makedirs("output", exist_ok=True)
@@ -172,7 +202,10 @@ if __name__ == '__main__':
 
     # Get dataloader
     trainloader = torch.utils.data.DataLoader(
-        ListDataset(train_path,img_size=img_size, train=True, synth=finetune, grayscale=opt.grayscale), batch_size=batch_size, shuffle=True, num_workers=n_cpu
+        ListDataset(train_path,img_size=img_size, train=True, synth=finetune, yu=opt.yu), batch_size=batch_size, shuffle=True, num_workers=n_cpu
+    )
+    valloader = torch.utils.data.DataLoader(
+        ListDataset(val_path,img_size=img_size, train=False, synth=finetune, yu=opt.yu), batch_size=batch_size, shuffle=False, num_workers=n_cpu
     )
 
     for transfer in transfers:
@@ -183,7 +216,7 @@ if __name__ == '__main__':
                 torch.cuda.manual_seed(1234)
 
             # Initiate model
-            model = ROBO(inch=channels,bn=opt.bn)
+            model = ROBO(inch=channels,bn=opt.bn,halfRes = halfRes)
             comp = model.get_computations()
             print(comp)
             print(sum(comp))
@@ -205,10 +238,14 @@ if __name__ == '__main__':
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs,eta_min=eta_min)
 
             for epoch in range(epochs):
-                bestLoss = train(epoch,bestLoss)
+                if finetune:
+                    train(epoch,epochs,100)
+                    bestLoss = valid(epoch,epochs,bestLoss,False)
+                else:
+                    bestLoss = train(epoch,epochs,bestLoss)
 
             if finetune and (transfer == 0):
-                model.load_state_dict(torch.load("checkpoints/bestFinetune%s%s.weights" % ("GS" if opt.grayscale else "","BN" if opt.bn else "")))
+                model.load_state_dict(torch.load("checkpoints/bestFinetune%s%s%s.weights" % ("2C" if opt.yu else "","BN" if opt.bn else "","HR" if opt.hr else "")))
                 with torch.no_grad():
                     indices = pruneModel(model.parameters())
 
@@ -218,4 +255,5 @@ if __name__ == '__main__':
                 bestLoss = 0
 
                 for epoch in range(25):
-                    bestLoss = train(epoch, bestLoss, indices=indices)
+                    train(epoch, 25, 100, indices=indices)
+                    bestLoss = valid(epoch,25,bestLoss,True)

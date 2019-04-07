@@ -1,5 +1,7 @@
 import glob
 import cv2
+import argparse
+import os.path as osp
 
 def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
     # initialize the dimensions of the image to be resized and
@@ -34,7 +36,12 @@ def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
 
 if __name__ =="__main__":
 
-    trPath = "E:/RoboCup/YOLO/Train/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", help="Path pointing to the YOLO folder", type=str,required=True)
+    opt = parser.parse_args()
+    root = opt.root
+
+    trPath = osp.join(root,"YOLO/Train/")
     trFile = "./data/RoboCup/train.txt"
 
     with open(trFile,"w+") as file:
@@ -42,14 +49,24 @@ if __name__ =="__main__":
             file.write(trPath+fName + "\n")
         file.close()
 
-    '''for fName in glob.glob1(trPath, "*.jpg"):
-        print(fName)
-        img = cv2.imread(trPath+fName)
-        img = image_resize(img,height=416)
-        cv2.imwrite(trPath+fName,img)'''
-
-    tePath = "E:/RoboCup/YOLO/Test/"
+    tePath = osp.join(root,"YOLO/Test/")
     teFile = "./data/RoboCup/test.txt"
+
+    with open(teFile, "w+") as file:
+        for fName in glob.glob1(tePath, "*.png"):
+            file.write(tePath + fName + "\n")
+        file.close()
+
+    trPath = osp.join(root,"YOLO/Finetune/train/")
+    trFile = "./data/RoboCup/FinetuneTrain.txt"
+
+    with open(trFile,"w+") as file:
+        for fName in glob.glob1(trPath,"*.png"):
+            file.write(trPath+fName + "\n")
+        file.close()
+
+    tePath = osp.join(root,"YOLO/Finetune/test/")
+    teFile = "./data/RoboCup/FinetuneTest.txt"
 
     with open(teFile, "w+") as file:
         for fName in glob.glob1(tePath, "*.png"):

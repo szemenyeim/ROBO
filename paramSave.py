@@ -18,9 +18,9 @@ def saveParams( path, model, fName="weights.dat" ):
 
 if __name__ == "__main__":
 
-    path = "checkpoints/bestFinetune88_60.weights"
+    path = "checkpoints/bestFinetuneHR93_32.weights"
 
-    model = ROBO(bn=False)
+    model = ROBO(bn=False,inch=3,halfRes=True)
     model.load_state_dict(torch.load(path))
 
-    saveParams("checkpoints/",model,fName="weights.dat")
+    saveParams("checkpoints/",model,fName="weightsHR93.dat")

@@ -163,17 +163,18 @@ class YOLOLayer(nn.Module):
             return output
 
 class ROBO(nn.Module):
-    def __init__(self, inch=3, ch=4, img_shape=(384,512), bn = False):
+    def __init__(self, inch=3, ch=4, img_shape=(384,512), bn = False, halfRes=False):
         super(ROBO,self).__init__()
 
-        self.img_shape = img_shape
+        self.img_shape = (img_shape[0] // 2,img_shape[1] // 2)  if halfRes else img_shape
 
         self.bn = bn
+        self.halfRes = halfRes
 
         self.loss_names = ["x", "y", "w", "h", "conf", "cls", "recall", "precision"]
 
         self.branchLayers = [
-            11,
+            10 if halfRes else 11,
             -1
         ]
 
@@ -211,8 +212,8 @@ class ROBO(nn.Module):
             ])
         else:
             self.downPart = nn.ModuleList([
-                Conv(inch,ch,2), # Stride: 2
-                Conv(ch,ch*2,2), # Stride: 4
+                None if halfRes else Conv(inch,ch,2), # Stride: 2
+                Conv(inch if halfRes else ch,ch*2,2), # Stride: 4
                 Conv(ch*2,ch*4,2), # Stride: 8
                 Conv(ch*4,ch*4,1),
                 Conv(ch*4,ch*8,2), # Stride: 16
@@ -247,7 +248,8 @@ class ROBO(nn.Module):
         layer_outputs = [x]
 
         for layer in self.downPart:
-            layer_outputs.append(layer(layer_outputs[-1]))
+            if layer is not None:
+                layer_outputs.append(layer(layer_outputs[-1]))
 
         for idx, cl, yolo in zip(self.branchLayers,self.classifiers,self.yolo):
             out = cl(layer_outputs[idx])
@@ -274,9 +276,11 @@ class ROBO(nn.Module):
         computations = []
 
         for module in self.downPart:
-            ratio = float(module.conv.weight.nonzero().size(0)) / float(module.conv.weight.numel()) if pruned else 1
-            comp, W, H = module.getComp(W,H)
-            computations.append(comp * ratio)
+            if module is not None:
+                ratio = float(module.conv.weight.nonzero().size(0)) / float(module.conv.weight.numel()) if pruned else 1
+                if module is not None:
+                    comp, W, H = module.getComp(W,H)
+                    computations.append(comp * ratio)
 
         H, W = self.img_shape[0] // 32, self.img_shape[1] // 32
         computations.append(H*W*64*10*2 * (2 if self.bn else 1))

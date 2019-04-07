@@ -29,7 +29,8 @@ if __name__ == '__main__':
     parser.add_argument('--img_size', type=int, default=(384,512), help='size of each image dimension')
     parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
     parser.add_argument("--bn", help="Use bottleneck", action="store_true", default=False)
-    parser.add_argument("--grayscale", help="Use grayscale images", action="store_true", default=False)
+    parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=False)
+    parser.add_argument("--hr", help="Use half res", action="store_true", default=True)
     opt = parser.parse_args()
     print(opt)
 
@@ -37,17 +38,21 @@ if __name__ == '__main__':
 
     image_folder = "E:/RoboCup/YOLO/Finetune/test/" if opt.finetune else "E:/RoboCup/YOLO/Test/"
 
-    weights_path = "checkpoints/bestFinetune88_60" if opt.finetune else "checkpoints/best"
+    weights_path = "checkpoints/bestFinetune" if opt.finetune else "checkpoints/best"
 
-    if opt.grayscale:
-        weights_path += "GS"
+    if opt.yu:
+        weights_path += "2C"
+    if opt.bn:
+        weights_path += "BN"
+    if opt.hr:
+        weights_path += "HR"
 
-    weights_path += "BN.weights" if opt.bn else ".weights"
+    weights_path += ".weights"
 
     os.makedirs('output', exist_ok=True)
 
     # Set up model
-    channels = 2 if opt.grayscale else 3
+    channels = 2 if opt.yu else 3
     model = ROBO(inch=channels,bn=opt.bn)
     model.load_state_dict(torch.load(weights_path))
 
@@ -58,7 +63,7 @@ if __name__ == '__main__':
 
     model.eval() # Set in evaluation mode
 
-    dataloader = DataLoader(ImageFolder(image_folder, synth=opt.finetune, type='%s/*.png', grayscale=opt.grayscale),
+    dataloader = DataLoader(ImageFolder(image_folder, synth=opt.finetune, type='%s/*.png', yu=opt.yu, hr=opt.hr),
                             batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
     classes = load_classes(opt.class_path) # Extracts class labels from file

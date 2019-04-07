@@ -6,6 +6,7 @@ import torch.nn as nn
 import numpy as np
 import glob
 from PIL import Image
+import progressbar
 
 
 
@@ -273,24 +274,123 @@ def bbox_dist(box1,boxes):
         distances = np.append(distances,np.sqrt(pow(cent1x-cent2x,2) + pow(cent1y-cent2y,2)))
     return distances
 
-'''if __name__ =="__main__":
-    path = "E:/RoboCup/YOLO/Finetune/train/"
+def computeAP(model,dataloader,conf_thres,nms_thres,num_classes,img_size,useIoU,thresh):
+    Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
-    mtx =  (0.299, 0.587, 0.114, 0, -0.14713, -0.28886, 0.436, 128, 0.615, -0.51499, -0.10001, 128)
+    all_detections = []
+    all_annotations = []
 
-    mean = np.zeros(3)
-    std = np.zeros(3)
-    cnt = 0
+    bar = progressbar.ProgressBar(0, len(dataloader), redirect_stdout=False)
 
-    for img_p in glob.glob1(path, "*.png"):
-        img = Image.open(path + img_p)#.resize((512,384),Image.LANCZOS)
-        img = img.convert("RGB",mtx)
-        img_arr = np.array(img)/255
-        mean += np.mean(img_arr,(0,1))
-        std += np.std(img_arr,(0,1))
-        cnt += 1
-        img.save(path+img_p)
-        print(img_p)
+    for batch_i, (_, imgs, targets) in enumerate(dataloader):
 
-    print(mean/cnt)
-    print(np.sqrt(std/cnt))'''
+        imgs = imgs.type(Tensor)
+
+        with torch.no_grad():
+            outputs = model(imgs)
+            outputs = non_max_suppression(outputs, 80, conf_thres=conf_thres, nms_thres=nms_thres)
+
+        for output, annotations in zip(outputs, targets):
+
+            all_detections.append([np.array([]) for _ in range(num_classes)])
+            if output is not None:
+                # Get predicted boxes, confidence scores and labels
+                pred_boxes = output[:, :5].cpu().numpy()
+                scores = output[:, 4].cpu().numpy()
+                pred_labels = output[:, -1].cpu().numpy()
+
+                # Order by confidence
+                sort_i = np.argsort(scores)
+                pred_labels = pred_labels[sort_i]
+                pred_boxes = pred_boxes[sort_i]
+
+                for label in range(num_classes):
+                    all_detections[-1][label] = pred_boxes[pred_labels == label]
+
+            all_annotations.append([np.array([]) for _ in range(num_classes)])
+            if any(annotations[:, -1] > 0):
+
+                annotation_labels = annotations[annotations[:, -1] > 0, 0].numpy()
+                _annotation_boxes = annotations[annotations[:, -1] > 0, 1:]
+
+                # Reformat to x1, y1, x2, y2 and rescale to image dimensions
+                annotation_boxes = np.empty_like(_annotation_boxes)
+                annotation_boxes[:, 0] = (_annotation_boxes[:, 0] - _annotation_boxes[:, 2] / 2) * img_size[1]
+                annotation_boxes[:, 1] = (_annotation_boxes[:, 1] - _annotation_boxes[:, 3] / 2) * img_size[0]
+                annotation_boxes[:, 2] = (_annotation_boxes[:, 0] + _annotation_boxes[:, 2] / 2) * img_size[1]
+                annotation_boxes[:, 3] = (_annotation_boxes[:, 1] + _annotation_boxes[:, 3] / 2) * img_size[0]
+                # annotation_boxes *= opt.img_size
+
+                for label in range(num_classes):
+                    all_annotations[-1][label] = annotation_boxes[annotation_labels == label, :]
+
+        bar.update(batch_i)
+    bar.finish()
+    average_precisions = {}
+    for label in range(num_classes):
+        true_positives = []
+        scores = []
+        num_annotations = 0
+
+        for i in range(len(all_annotations)):
+            detections = all_detections[i][label]
+            annotations = all_annotations[i][label]
+
+            num_annotations += annotations.shape[0]
+            detected_annotations = []
+
+            for *bbox, score in detections:
+                scores.append(score)
+
+                if annotations.shape[0] == 0:
+                    true_positives.append(0)
+                    continue
+
+                if useIoU:
+                    overlaps = bbox_iou_numpy(np.expand_dims(bbox, axis=0), annotations)
+                    assigned_annotation = np.argmax(overlaps, axis=1)
+                    max_overlap = overlaps[0, assigned_annotation]
+
+                    if max_overlap >= thresh and assigned_annotation not in detected_annotations:
+                        true_positives.append(1)
+                        detected_annotations.append(assigned_annotation)
+                    else:
+                        true_positives.append(0)
+                else:
+                    distances = bbox_dist(bbox, annotations)
+                    assigned_annotation = np.argmin(distances)
+                    min_dist = distances[assigned_annotation]
+
+                    if min_dist <= thresh and assigned_annotation not in detected_annotations:
+                        true_positives.append(1)
+                        detected_annotations.append(assigned_annotation)
+                    else:
+                        true_positives.append(0)
+
+        # no annotations -> AP for this class is 0
+        if num_annotations == 0:
+            average_precisions[label] = 0
+            continue
+
+        true_positives = np.array(true_positives)
+        false_positives = np.ones_like(true_positives) - true_positives
+        # sort by score
+        indices = np.argsort(-np.array(scores))
+        false_positives = false_positives[indices]
+        true_positives = true_positives[indices]
+
+        # compute false positives and true positives
+        false_positives = np.cumsum(false_positives)
+        true_positives = np.cumsum(true_positives)
+
+        # compute recall and precision
+        recall = true_positives / num_annotations
+        precision = true_positives / np.maximum(true_positives + false_positives, np.finfo(np.float64).eps)
+
+        # compute average precision
+        average_precision = compute_ap(recall, precision)
+        average_precisions[label] = average_precision
+
+    mAP = np.mean(list(average_precisions.values()))
+
+    return mAP

@@ -12,9 +12,11 @@ import torchvision.transforms.functional as F
 
 
 class ImageFolder(Dataset):
-    def __init__(self, folder_path, type = '%s/*.*', synth = False, grayscale = False):
+    def __init__(self, folder_path, type = '%s/*.*', synth = False, yu = False, hr = False):
         self.files = sorted(glob.glob(type % folder_path))
-        self.grayscale = grayscale
+        self.yu = yu
+        self.hr = hr
+        self.resize = transforms.Resize((192,256))
         self.mean = [0.4637419, 0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
         self.std = [0.45211827, 0.16890674, 0.18645908] if synth else [0.3132638, 0.21061972, 0.34144647]
         self.transform = transforms.Compose([
@@ -26,9 +28,12 @@ class ImageFolder(Dataset):
         img_path = self.files[index % len(self.files)].rstrip()
         img = Image.open(img_path)
 
+        if self.hr:
+            img = self.resize(img)
+
         input_img = self.transform(img)
 
-        if self.grayscale:
+        if self.yu:
             input_img[1] = input_img[2]*0.5 + input_img[1]*0.5
             input_img = input_img[0:2]
 
@@ -39,7 +44,7 @@ class ImageFolder(Dataset):
 
 
 class ListDataset(Dataset):
-    def __init__(self, list_path, img_size=(384,512), train=True, synth = False, grayscale=False):
+    def __init__(self, list_path, img_size=(384,512), train=True, synth = False, yu=False):
         with open(list_path, 'r') as file:
             self.img_files = file.readlines()
         self.label_files = [path.replace('images', 'labels').replace('.png', '.txt').replace('.jpg', '.txt') for path in self.img_files]
@@ -47,7 +52,8 @@ class ListDataset(Dataset):
         self.max_objects = 50
         self.train = train
         self.synth = synth
-        self.grayscale = grayscale
+        self.img_size = img_size
+        self.yu = yu
         self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
         self.resize = transforms.Resize(img_size)
         self.mean = [0.4637419, 0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
@@ -62,6 +68,9 @@ class ListDataset(Dataset):
         img_path = self.img_files[index % len(self.img_files)].rstrip()
         img = Image.open(img_path)
 
+        if self.img_size != img.size:
+            img = self.resize(img)
+
         w, h = img.size
 
         p = 0
@@ -73,7 +82,7 @@ class ListDataset(Dataset):
                 input_img = input_img.flip(2)
             input_img = self.jitter(input_img)
 
-        if self.grayscale:
+        if self.yu:
             input_img[1] = input_img[2]*0.5 + input_img[1]*0.5
             input_img = input_img[0:2]
         #---------
