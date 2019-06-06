@@ -134,7 +134,9 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
     for image_i, image_pred in enumerate(prediction):
         # Filter out confidence scores below threshold
         conf_mask = (image_pred[:, 4] >= conf_thres).squeeze()
-        classPred = torch.cat((torch.zeros(192),torch.ones(192),2*torch.ones(48),3*torch.ones(48))).cuda().unsqueeze(1)
+        classPred = torch.cat((torch.zeros(192),torch.ones(192),2*torch.ones(48),3*torch.ones(48))).unsqueeze(1)
+        if torch.cuda.is_available():
+            classPred = classPred.cuda()
         classPred = classPred[conf_mask]
         image_pred = image_pred[conf_mask]
         # If none are remaining => process next image
