@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # Set up model
     channels = 2 if opt.yu else 3
     model = ROBO(inch=channels,bn=opt.bn)
-    model.load_state_dict(torch.load(weights_path))
+    model.load_state_dict(torch.load(weights_path,map_location={'cuda:0': 'cpu'}))
 
     print(count_zero_weights(model))
 

@@ -66,7 +66,7 @@ if __name__ == '__main__':
     for path in weights_path:
         print(path)
         model = ROBO(inch=channels,bn=opt.bn, halfRes=opt.hr)
-        model.load_state_dict(torch.load(path))
+        model.load_state_dict(torch.load(path,map_location={'cuda:0': 'cpu'}))
 
         print(count_zero_weights(model))
 
