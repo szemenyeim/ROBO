@@ -175,7 +175,7 @@ if __name__ == '__main__':
     dec = opt.decay if finetune else opt.decay/10
     transfers = ([3, 5, 8, 11] if opt.bn else [3, 5, 7, 9]) if opt.transfer else [0]
     decays = [2e-3, 1e-3, 5e-4, 2.5e-4, 1e-4] if (finetune and not opt.transfer) else [dec]
-    decays = [2e-3]
+    #decays = [2e-3]
     halfRes = opt.hr
 
     classPath = "data/robo.names"

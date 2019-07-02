@@ -286,7 +286,8 @@ def computeAP(model,dataloader,conf_thres,nms_thres,num_classes,img_size,useIoU,
 
     for batch_i, (_, imgs, targets) in enumerate(dataloader):
 
-        imgs = imgs.type(Tensor)
+        if torch.cuda.is_available():
+            imgs = imgs.cuda()
 
         with torch.no_grad():
             outputs = model(imgs)
