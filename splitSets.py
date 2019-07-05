@@ -7,7 +7,7 @@ import random
 
 if __name__ == "__main__":
 
-    inPath = "/Users/martonszemenyei/Projects/ROBO/data/YOLO/Finetune/sydney/"
+    inPath = "/Users/martonszemenyei/Projects/ROBO/data/YOLO/sydney/"
     oPathTrain = "/Users/martonszemenyei/Projects/ROBO/data/YOLO/Finetune/train/"
     oPathTest = "/Users/martonszemenyei/Projects/ROBO/data/YOLO/Finetune/test/"
 

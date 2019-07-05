@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     drawing = False
 
-    path = "/Users/martonszemenyei/Projects/ROBO/data/YOLO/Finetune/sydney/"
+    path = "/Users/martonszemenyei/Projects/ROBO/data/YOLO/sydney/"
 
     names = sorted_nicely(glob1(path, "*.png"))
 
@@ -57,6 +57,10 @@ if __name__ == '__main__':
     for frameCntr,name in enumerate(names):
 
         img = cv2.imread(path+name)
+        if img.shape[0] != 384:
+            img = cv2.resize(img,(512,384))
+            cv2.imwrite(path+name,img)
+        img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
         img = cv2.cvtColor(img,cv2.COLOR_YUV2BGR)
 
         orig = img.copy()
