@@ -396,4 +396,4 @@ def computeAP(model,dataloader,conf_thres,nms_thres,num_classes,img_size,useIoU,
 
     mAP = np.mean(list(average_precisions.values()))
 
-    return mAP
+    return mAP,list(average_precisions.values())

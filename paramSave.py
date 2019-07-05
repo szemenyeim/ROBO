@@ -20,28 +20,28 @@ def saveParams( path, model, fName="weights.dat" ):
 
 if __name__ == "__main__":
 
-    path = "checkpoints/bestFinetuneHR93_34.weights"
+    path = "checkpoints/bestFinetuneHR93_31.weights"
 
     model = ROBO(bn=False,inch=3,halfRes=True)
     model.load_state_dict(torch.load(path, map_location={'cuda:0': 'cpu'}))
 
     saveParams("checkpoints/",model,fName="weightsHR.dat")
 
-    path = "checkpoints/bestFinetune2C93_42.weights"
+    path = "checkpoints/bestFinetune2C94_38.weights"
 
     model = ROBO(bn=False,inch=2,halfRes=False)
     model.load_state_dict(torch.load(path, map_location={'cuda:0': 'cpu'}))
 
     saveParams("checkpoints/",model,fName="weights2C.dat")
 
-    path = "checkpoints/bestFinetuneBN97_81.weights"
+    path = "checkpoints/bestFinetuneBN97_78.weights"
 
     model = ROBO(bn=True,inch=3,halfRes=False)
     model.load_state_dict(torch.load(path, map_location={'cuda:0': 'cpu'}))
 
     saveParams("checkpoints/",model,fName="weightsBN.dat")
 
-    path = "checkpoints/bestFinetune93_47.weights"
+    path = "checkpoints/bestFinetune93_39.weights"
 
     model = ROBO(bn=False,inch=3,halfRes=False)
     model.load_state_dict(torch.load(path, map_location={'cuda:0': 'cpu'}))

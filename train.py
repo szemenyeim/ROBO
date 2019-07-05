@@ -120,10 +120,10 @@ def train(epoch,epochs,bestLoss,indices = None):
         comp = round(sum(model.get_computations(True))/1000000)
         name = name + ("%d_%d" %(pruneP,comp))
 
-    if bestLoss < (recall + prec):
+    '''if bestLoss < (recall + prec):
         print("Saving best model")
         bestLoss = (recall + prec)
-        torch.save(model.state_dict(), "checkpoints/%s.weights" % name)
+        torch.save(model.state_dict(), "checkpoints/%s.weights" % name)'''
 
     return bestLoss
 
@@ -135,7 +135,7 @@ def valid(epoch,epochs,bestLoss,pruned):
 
     model.eval()
 
-    mAP = computeAP(model,valloader,0.5,0.45,4,(384,512),False,32)
+    mAP, APs = computeAP(model,valloader,0.5,0.45,4,(384,512),False,32)
     prune = count_zero_weights(model)
 
     name = "bestFinetune" if finetune else "best"
@@ -149,7 +149,7 @@ def valid(epoch,epochs,bestLoss,pruned):
         comp = round(sum(model.get_computations(True))/1000000)
         name = name + ("%d_%d" %(pruneP,comp))
 
-    print("[Epoch Val %d/%d mAP: %.4f]" % (epoch + 1,epochs,mAP))
+    print("[Epoch Val %d/%d mAP: %.4f][Ball: %.4f Crossing: %.4f Goalpost: %.4f Robot: %.4f]" % (epoch + 1,epochs,mAP,APs[0],APs[1],APs[2],APs[3]))
 
     if bestLoss < (mAP):
         print("Saving best model")
