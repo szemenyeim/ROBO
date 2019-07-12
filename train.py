@@ -211,9 +211,9 @@ if __name__ == '__main__':
     for transfer in transfers:
         for decay in decays:
 
-            torch.random.manual_seed(1234)
+            torch.random.manual_seed(12345678)
             if cuda:
-                torch.cuda.manual_seed(1234)
+                torch.cuda.manual_seed(12345678)
 
             # Initiate model
             model = ROBO(inch=channels,bn=opt.bn,halfRes = halfRes)
@@ -234,15 +234,15 @@ if __name__ == '__main__':
                         {'params': model.downPart[transfer:].parameters()},
                         {'params': model.classifiers.parameters()}
                     ],lr=learning_rate)
-            eta_min = learning_rate/25 if opt.transfer else learning_rate/20
+            eta_min = learning_rate/25 if opt.transfer else learning_rate/10
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,epochs,eta_min=eta_min)
 
             for epoch in range(epochs):
-                if finetune:
-                    train(epoch,epochs,100)
-                    bestLoss = valid(epoch,epochs,bestLoss,False)
-                else:
-                    bestLoss = train(epoch,epochs,bestLoss)
+                #if finetune:
+                train(epoch,epochs,100)
+                bestLoss = valid(epoch,epochs,bestLoss,False)
+                #else:
+                    #bestLoss = train(epoch,epochs,bestLoss)
 
             if finetune and (transfer == 0):
                 model.load_state_dict(torch.load("checkpoints/bestFinetune%s%s%s.weights" % ("2C" if opt.yu else "","BN" if opt.bn else "","HR" if opt.hr else "")))

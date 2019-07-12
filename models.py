@@ -132,7 +132,7 @@ class YOLOLayer(nn.Module):
             loss_y = self.mse_loss(y[mask], ty[mask])
             loss_w = self.mse_loss(w[mask], tw[mask])
             loss_h = self.mse_loss(h[mask], th[mask])
-            loss_conf = 5*self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false]) + self.bce_loss(
+            loss_conf = 10*self.bce_loss(pred_conf[conf_mask_false], tconf[conf_mask_false]) + 1*self.bce_loss(
                 pred_conf[conf_mask_true], tconf[conf_mask_true]
             )
             #loss_cls = (1 / nB) * self.ce_loss(pred_cls[mask], torch.argmax(tcls[mask], 1))
@@ -179,10 +179,10 @@ class ROBO(nn.Module):
         ]
 
         self.anchors = [
-            (37,34),
+            (42,39),
             (29,16),
-            (29,118),
-            (76,101),
+            (31,109),
+            (79,106),
         ]
         if bn:
             ch *= 2

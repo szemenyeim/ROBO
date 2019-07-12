@@ -63,7 +63,7 @@ if __name__ == '__main__':
     channels = 2 if opt.yu else 3
 
     # Initiate model
-    for path in weights_path:
+    for path in sorted(weights_path):
         print(path)
         model = ROBO(inch=channels,bn=opt.bn, halfRes=opt.hr)
         model.load_state_dict(torch.load(path,map_location={'cuda:0': 'cpu'}))
