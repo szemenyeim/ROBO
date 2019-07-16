@@ -10,11 +10,11 @@ This Repo contains the code for our submission for the RoboCup 2019 Symposium. I
 - Progressbar
 
 ## Dataset and Pretrained models
-You can download the dataset used from [here](http://3dmr.iit.bme.hu/research/robocup/Datasets/YOLO.zip).
+You can download the dataset used from the following links: [Synthetic train](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_train.zip) [Synthetic test](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Test.zip) [Finetune](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Finetune.zip)
 
 The pretrained models are available from [this link](http://3dmr.iit.bme.hu/research/robocup/Datasets/checkpoints.zip).
 
-The [old dataset](http://3dmr.iit.bme.hu/research/robocup/Datasets/YOLO_old.zip) (without Sydney images) and [models](http://3dmr.iit.bme.hu/research/robocup/Datasets/checkpoints_old.zip) are also available.
+The [old finetune dataset](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Finetune_old.zip) (without Sydney images) and [models](http://3dmr.iit.bme.hu/research/robocup/Datasets/checkpoints_old.zip) are also available.
 
 ## Train your own models
 1. To train your own models, first extract the dataset to a folder of your choice.
