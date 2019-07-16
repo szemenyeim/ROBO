@@ -10,7 +10,7 @@ This Repo contains the code for our submission for the RoboCup 2019 Symposium. I
 - Progressbar
 
 ## Dataset and Pretrained models
-You can download the dataset used from the following links: [Synthetic train](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_train.zip) [Synthetic test](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Test.zip) [Finetune](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Finetune.zip)
+You can download the dataset used from the following links: [Synthetic train](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Train.zip) [Synthetic test](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Test.zip) [Finetune](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Finetune.zip)
 
 The pretrained models are available from [this link](http://3dmr.iit.bme.hu/research/robocup/Datasets/checkpoints.zip).
 
