@@ -68,7 +68,7 @@ class ListDataset(Dataset):
         img_path = self.img_files[index % len(self.img_files)].rstrip()
         img = Image.open(img_path)
 
-        if self.img_size != img.size:
+        if self.img_size[0] != img.size[1] and self.img_size[1] != img.size[0]:
             img = self.resize(img)
 
         w, h = img.size
