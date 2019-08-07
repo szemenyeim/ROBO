@@ -56,8 +56,8 @@ class ListDataset(Dataset):
         self.yu = yu
         self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
         self.resize = transforms.Resize(img_size)
-        self.mean = [0.4637419, 0.47166784, 0.48316576] if synth else [0.36224657, 0.41139355, 0.28278301]
-        self.std = [0.45211827, 0.16890674, 0.18645908] if synth else [0.3132638, 0.21061972, 0.34144647]
+        self.mean = [0.36269532, 0.41144562, 0.282713] if synth else [0.40513613, 0.48072927, 0.48718367]
+        self.std = [0.31111388, 0.21010718, 0.34060917] if synth else [0.44540985, 0.15460468, 0.18062305]
         self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
 
     def __getitem__(self, index):
