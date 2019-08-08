@@ -9,6 +9,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
+import numbers
+import cv2
 
 class RandomAffineCust(object):
     """Random affine transformation of the image keeping center invariant
@@ -96,17 +98,17 @@ class RandomAffineCust(object):
         Returns:
             PIL Image: Affine transformed image.
         """
-        ret = self.get_params(self.degrees, self.translate, self.scale, self.shear, img.size)
+        ret = self.get_params(self.degrees, self.translate, self.scale, img.size)
 
-        angle = ret[0]
-        translations = ret[1]
-        label[:,1] = (label[:,1]-0.5)*cos(angle) - (label[:,2]-0.5)*sin(angle) + 0.5 + translations[0]
-        label[:,2] = (label[:,1]-0.5)*sin(angle) + (label[:,2]-0.5)*cos(angle) + 0.5 + translations[1]
+        angle = np.deg2rad(ret[0])
+        translations = (ret[1][0]/img.size[0],ret[1][1]/img.size[1])
+        scale = ret[2]
+        label[:,1] = ((label[:,1]-0.5)*np.cos(angle) - (label[:,2]-0.5)*np.sin(angle))*scale + 0.5 + translations[0]
+        label[:,2] = ((label[:,1]-0.5)*np.sin(angle) + (label[:,2]-0.5)*np.cos(angle))*scale + 0.5 + translations[1]
+        label[:, 3] *= scale
+        label[:, 4] *= scale
 
         return F.affine(img, *ret, resample=self.resample, fillcolor=self.fillcolor), label
-
-
-
 
 class ImageFolder(Dataset):
     def __init__(self, folder_path, type = '%s/*.*', synth = False, yu = False, hr = False):
@@ -151,9 +153,9 @@ class ListDataset(Dataset):
         self.synth = synth
         self.img_size = img_size
         self.yu = yu
-        self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
+        self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6,0.05)
         self.resize = transforms.Resize(img_size)
-        self.affine = RandomAffineCust(10,(0.05,0.05),(0.95,1.05))
+        self.affine = RandomAffineCust(5,(0.025,0.025),(1.0,1.0),fillcolor=127)
         self.mean = [0.36269532, 0.41144562, 0.282713] if synth else [0.40513613, 0.48072927, 0.48718367]
         self.std = [0.31111388, 0.21010718, 0.34060917] if synth else [0.44540985, 0.15460468, 0.18062305]
         self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
@@ -177,7 +179,8 @@ class ListDataset(Dataset):
         label_path = self.label_files[index % len(self.img_files)].rstrip()
         labels = np.loadtxt(label_path).reshape(-1, 5)
 
-        img,labels = self.affine(img,labels)
+        if self.train:
+            img,labels = self.affine(img,labels)
 
         p = 0
         input_img = transforms.functional.to_tensor(img)
@@ -232,12 +235,13 @@ def myRGB2YUV(img):
     return torch.einsum('nm,mbc->nbc',mtx,img)
 
 class ColorJitter(object):
-    def __init__(self,b=0.3,c=0.3,s=0.3,h=3.1415/6):
+    def __init__(self,b=0.3,c=0.3,s=0.3,h=3.1415/6,var=0.05):
         super(ColorJitter,self).__init__()
         self.b = b
         self.c = c
         self.s = s
         self.h = h
+        self.var = var
 
     def __call__(self, img):
         b_val = random.uniform(-self.b,self.b)
@@ -247,6 +251,7 @@ class ColorJitter(object):
 
         mtx = torch.FloatTensor([[s_val*np.cos(h_val),-np.sin(h_val)],[np.sin(h_val),s_val*np.cos(h_val)]])
 
+        img += torch.randn_like(img)*self.var
         img[0] = (img[0]+b_val)*c_val
         if self.s > 0 and self.h > 0:
             img[1:] = torch.einsum('nm,mbc->nbc',mtx,img[1:])
