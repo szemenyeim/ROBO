@@ -10,6 +10,103 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 
+class RandomAffineCust(object):
+    """Random affine transformation of the image keeping center invariant
+
+    Args:
+        degrees (sequence or float or int): Range of degrees to select from.
+            If degrees is a number instead of sequence like (min, max), the range of degrees
+            will be (-degrees, +degrees). Set to 0 to deactivate rotations.
+        translate (tuple, optional): tuple of maximum absolute fraction for horizontal
+            and vertical translations. For example translate=(a, b), then horizontal shift
+            is randomly sampled in the range -img_width * a < dx < img_width * a and vertical shift is
+            randomly sampled in the range -img_height * b < dy < img_height * b. Will not translate by default.
+        scale (tuple, optional): scaling factor interval, e.g (a, b), then scale is
+            randomly sampled from the range a <= scale <= b. Will keep original scale by default.
+        shear (sequence or float or int, optional): Range of degrees to select from.
+            If degrees is a number instead of sequence like (min, max), the range of degrees
+            will be (-degrees, +degrees). Will not apply shear by default
+        resample ({PIL.Image.NEAREST, PIL.Image.BILINEAR, PIL.Image.BICUBIC}, optional):
+            An optional resampling filter. See `filters`_ for more information.
+            If omitted, or if the image has mode "1" or "P", it is set to PIL.Image.NEAREST.
+        fillcolor (int): Optional fill color for the area outside the transform in the output image. (Pillow>=5.0.0)
+
+    .. _filters: https://pillow.readthedocs.io/en/latest/handbook/concepts.html#filters
+
+    """
+
+    def __init__(self, degrees, translate=None, scale=None, resample=False, fillcolor=0):
+        if isinstance(degrees, numbers.Number):
+            if degrees < 0:
+                raise ValueError("If degrees is a single number, it must be positive.")
+            self.degrees = (-degrees, degrees)
+        else:
+            assert isinstance(degrees, (tuple, list)) and len(degrees) == 2, \
+                "degrees should be a list or tuple and it must be of length 2."
+            self.degrees = degrees
+
+        if translate is not None:
+            assert isinstance(translate, (tuple, list)) and len(translate) == 2, \
+                "translate should be a list or tuple and it must be of length 2."
+            for t in translate:
+                if not (0.0 <= t <= 1.0):
+                    raise ValueError("translation values should be between 0 and 1")
+        self.translate = translate
+
+        if scale is not None:
+            assert isinstance(scale, (tuple, list)) and len(scale) == 2, \
+                "scale should be a list or tuple and it must be of length 2."
+            for s in scale:
+                if s <= 0:
+                    raise ValueError("scale values should be positive")
+        self.scale = scale
+
+        self.resample = resample
+        self.fillcolor = fillcolor
+
+    @staticmethod
+    def get_params(degrees, translate, scale_ranges, img_size):
+        """Get parameters for affine transformation
+
+        Returns:
+            sequence: params to be passed to the affine transformation
+        """
+        angle = random.uniform(degrees[0], degrees[1])
+        if translate is not None:
+            max_dx = translate[0] * img_size[0]
+            max_dy = translate[1] * img_size[1]
+            translations = (np.round(random.uniform(-max_dx, max_dx)),
+                            np.round(random.uniform(-max_dy, max_dy)))
+        else:
+            translations = (0, 0)
+
+        if scale_ranges is not None:
+            scale = random.uniform(scale_ranges[0], scale_ranges[1])
+        else:
+            scale = 1.0
+
+        shear = 0.0
+
+        return angle, translations, scale, shear
+
+    def __call__(self, img, label):
+        """
+            img (PIL Image): Image to be transformed.
+
+        Returns:
+            PIL Image: Affine transformed image.
+        """
+        ret = self.get_params(self.degrees, self.translate, self.scale, self.shear, img.size)
+
+        angle = ret[0]
+        translations = ret[1]
+        label[:,1] = (label[:,1]-0.5)*cos(angle) - (label[:,2]-0.5)*sin(angle) + 0.5 + translations[0]
+        label[:,2] = (label[:,1]-0.5)*sin(angle) + (label[:,2]-0.5)*cos(angle) + 0.5 + translations[1]
+
+        return F.affine(img, *ret, resample=self.resample, fillcolor=self.fillcolor), label
+
+
+
 
 class ImageFolder(Dataset):
     def __init__(self, folder_path, type = '%s/*.*', synth = False, yu = False, hr = False):
@@ -56,6 +153,7 @@ class ListDataset(Dataset):
         self.yu = yu
         self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6)
         self.resize = transforms.Resize(img_size)
+        self.affine = RandomAffineCust(10,(0.05,0.05),(0.95,1.05))
         self.mean = [0.36269532, 0.41144562, 0.282713] if synth else [0.40513613, 0.48072927, 0.48718367]
         self.std = [0.31111388, 0.21010718, 0.34060917] if synth else [0.44540985, 0.15460468, 0.18062305]
         self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
@@ -73,6 +171,14 @@ class ListDataset(Dataset):
 
         w, h = img.size
 
+        # ---------
+        #  Label
+        # ---------
+        label_path = self.label_files[index % len(self.img_files)].rstrip()
+        labels = np.loadtxt(label_path).reshape(-1, 5)
+
+        img,labels = self.affine(img,labels)
+
         p = 0
         input_img = transforms.functional.to_tensor(img)
         input_img = self.normalize(input_img)
@@ -85,34 +191,16 @@ class ListDataset(Dataset):
         if self.yu:
             input_img[1] = input_img[2]*0.5 + input_img[1]*0.5
             input_img = input_img[0:2]
-        #---------
-        #  Label
-        #---------
-        label_path = self.label_files[index % len(self.img_files)].rstrip()
 
-        labels = None
-        smallLabels = None
-        bigLabels = None
-        if os.path.exists(label_path):
-            labels = np.loadtxt(label_path).reshape(-1, 5)
-            if p > 0.5:
-                labels[:,1] = 1 - labels[:,1]
-            # Extract coordinates for unpadded + unscaled image
-            x1 = w * (labels[:, 1] - labels[:, 3]/2)
-            y1 = h * (labels[:, 2] - labels[:, 4]/2)
-            x2 = w * (labels[:, 1] + labels[:, 3]/2)
-            y2 = h * (labels[:, 2] + labels[:, 4]/2)
-            # Adjust for added padding
-            '''x1 += pad[1]
-            y1 += pad[0]
-            x2 += pad[1]
-            y2 += pad[0]
-            # Calculate ratios from coordinates'''
-            labels[:, 1] = np.clip((((x1 + x2) / 2) / w), a_min=0, a_max = 0.999)
-            labels[:, 2] = np.clip((((y1 + y2) / 2) / h), a_min=0, a_max = 0.999)
+        if p > 0.5:
+            labels[:,1] = 1 - labels[:,1]
 
-            smallLabels = np.array([lab for lab in labels if lab[0] < 2])
-            bigLabels = np.array([lab for lab in labels if lab[0] >= 2])
+        # Squeeze centers inside image
+        labels[:, 1] = np.clip(labels[:, 1], a_min=0, a_max = 0.999)
+        labels[:, 2] = np.clip(labels[:, 2], a_min=0, a_max = 0.999)
+
+        smallLabels = np.array([lab for lab in labels if lab[0] < 2])
+        bigLabels = np.array([lab for lab in labels if lab[0] >= 2])
 
         if self.train:
             # Fill matrix
