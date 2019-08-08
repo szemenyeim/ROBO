@@ -168,14 +168,16 @@ if __name__ == '__main__':
     parser.add_argument("--bn", help="Use bottleneck", action="store_true")
     parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=False)
     parser.add_argument("--hr", help="Use half res", action="store_true", default=False)
+    parser.add_argument("--singleDec", help="Just use a single decay value", action="store_true", default=False)
     opt = parser.parse_args()
 
     finetune = opt.finetune
     learning_rate = opt.lr/2 if opt.transfer else opt.lr
     dec = opt.decay if finetune else opt.decay/10
     transfers = ([3, 5, 8, 11] if opt.bn else [3, 5, 7, 9]) if opt.transfer else [0]
-    decays = [2e-3, 1e-3, 5e-4, 2.5e-4, 1e-4] if (finetune and not opt.transfer) else [dec]
-    #decays = [2e-3]
+    decays = [dec*20, dec*10, dec*5, dec*2.5, dec] if (finetune and not opt.transfer) else [dec]
+    if opt.singleDec:
+        decays = [dec*20]
     halfRes = opt.hr
 
     classPath = "data/robo.names"
