@@ -103,12 +103,16 @@ class RandomAffineCust(object):
         angle = np.deg2rad(ret[0])
         translations = (ret[1][0]/img.size[0],ret[1][1]/img.size[1])
         scale = ret[2]
-        label[:,1] = ((label[:,1]-0.5)*np.cos(angle) - (label[:,2]-0.5)*np.sin(angle))*scale + 0.5 + translations[0]
-        label[:,2] = ((label[:,1]-0.5)*np.sin(angle) + (label[:,2]-0.5)*np.cos(angle))*scale + 0.5 + translations[1]
+        imgRatio = img.size[0]/img.size[1]
+        x = (label[:,1]-0.5)*imgRatio
+        y = label[:,2]-0.5
+        label[:,1] = (x*np.cos(angle) - y*np.sin(angle))*scale/imgRatio + 0.5 + translations[0]
+        label[:,2] = (x*np.sin(angle) + y*np.cos(angle))*scale + 0.5 + translations[1]
         label[:, 3] *= scale
         label[:, 4] *= scale
 
-        return F.affine(img, *ret, resample=self.resample, fillcolor=self.fillcolor), label
+        o_img = F.affine(img, *ret, resample=self.resample, fillcolor=self.fillcolor)
+        return o_img, label
 
 class ImageFolder(Dataset):
     def __init__(self, folder_path, type = '%s/*.*', synth = False, yu = False, hr = False):
@@ -155,7 +159,7 @@ class ListDataset(Dataset):
         self.yu = yu
         self.jitter = ColorJitter(0.3,0.3,0.3,3.1415/6,0.05)
         self.resize = transforms.Resize(img_size)
-        self.affine = RandomAffineCust(5,(0.025,0.025),(1.0,1.0),fillcolor=127)
+        self.affine = RandomAffineCust(5,(0.025,0.025),(0.9,1.1),fillcolor=0)
         self.mean = [0.36269532, 0.41144562, 0.282713] if synth else [0.40513613, 0.48072927, 0.48718367]
         self.std = [0.31111388, 0.21010718, 0.34060917] if synth else [0.44540985, 0.15460468, 0.18062305]
         self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
