@@ -187,8 +187,8 @@ class ROBO(nn.Module):
         if bn:
             ch *= 2
             self.downPart = nn.ModuleList([
-                Conv(inch,ch,2), # Stride: 2
-                Conv(ch,ch*2,2), # Stride: 4
+                None if halfRes else Conv(inch,ch,2), # Stride: 2
+                Conv(inch if halfRes else ch,ch*2,2), # Stride: 4
                 Conv(ch*2,ch*4,2), # Stride: 8
                 Conv(ch*4,ch*2,1,1),
                 Conv(ch*2,ch*4,1),

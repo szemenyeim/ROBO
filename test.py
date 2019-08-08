@@ -22,12 +22,11 @@ if __name__ == '__main__':
     parser.add_argument("--nms_thres", type=float, default=0.45, help="iou thresshold for non-maximum suppression")
     parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=(384,512), help="size of each image dimension")
-    parser.add_argument("--pruned", action="store_true",help="Pruned Version", default=False)
     parser.add_argument("--transfer", help="Layers to truly train", action="store_true", default=False)
-    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=False)
+    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
     parser.add_argument("--bn", help="Use bottleneck", action="store_true", default=False)
-    parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=False)
-    parser.add_argument("--hr", help="Use half res", action="store_true", default=False)
+    parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=True)
+    parser.add_argument("--hr", help="Use half res", action="store_true", default=True)
     opt = parser.parse_args()
 
     cuda = torch.cuda.is_available()
@@ -43,12 +42,12 @@ if __name__ == '__main__':
     if opt.hr:
         name += "HR"
 
+    weights_path = []
     if opt.transfer:
-        weights_path = glob.glob(name + "T*.weights")
-    elif opt.pruned:
-        weights_path = glob.glob(name + "*_*.weights")
+        weights_path = sorted(glob.glob(name + "T*.weights"),reverse=True)
     else:
-        weights_path = [name + ".weights"]
+        weights_path = sorted(glob.glob(name + "*_*.weights"),reverse=True)
+    weights_path += [name + ".weights"]
     if not opt.bn:
         weights_path = [path for path in weights_path if "BN" not in path]
     if not opt.yu:
@@ -63,7 +62,7 @@ if __name__ == '__main__':
     channels = 2 if opt.yu else 3
 
     # Initiate model
-    for path in sorted(weights_path):
+    for path in weights_path:
         print(path)
         model = ROBO(inch=channels,bn=opt.bn, halfRes=opt.hr)
         model.load_state_dict(torch.load(path,map_location={'cuda:0': 'cpu'}))

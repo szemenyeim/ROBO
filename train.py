@@ -209,7 +209,16 @@ if __name__ == '__main__':
     )
 
     for transfer in transfers:
+        if len(transfers) > 1:
+            print("######################################################")
+            print("############# Finetune with transfer: %d #############" % transfer)
+            print("######################################################")
         for decay in decays:
+
+            if len(decays) > 1:
+                print("######################################################")
+                print("############ Finetune with decay: %.1E ############" % decay)
+                print("######################################################")
 
             torch.random.manual_seed(12345678)
             if cuda:

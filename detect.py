@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights_path', type=str, default='checkpoints/DBestFinetunePruned.weights', help='path to weights file')
     parser.add_argument('--class_path', type=str, default='data/robo.names', help='path to class label file')
-    parser.add_argument('--conf_thres', type=float, default=0.8, help='object confidence threshold')
+    parser.add_argument('--conf_thres', type=float, default=0.5, help='object confidence threshold')
     parser.add_argument('--nms_thres', type=float, default=0.4, help='iou thresshold for non-maximum suppression')
     parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
     parser.add_argument('--n_cpu', type=int, default=4, help='number of cpu threads to use during batch generation')
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     # Set up model
     channels = 2 if opt.yu else 3
-    model = ROBO(inch=channels,bn=opt.bn)
+    model = ROBO(inch=channels,bn=opt.bn,halfRes=opt.hr)
     model.load_state_dict(torch.load(weights_path,map_location={'cuda:0': 'cpu'}))
 
     print(count_zero_weights(model))
@@ -67,8 +67,6 @@ if __name__ == '__main__':
                             batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
     classes = load_classes(opt.class_path) # Extracts class labels from file
-
-    print(classes)
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
@@ -113,7 +111,7 @@ if __name__ == '__main__':
         unpad_h = opt.img_size[0] - pad_y
         unpad_w = opt.img_size[1] - pad_x
 
-        img = cv2.cvtColor(img,cv2.COLOR_YCrCb2BGR)
+        img = cv2.cvtColor(img,cv2.COLOR_YUV2BGR)
 
         # Draw bounding boxes and labels of detections
         if detections is not None:
