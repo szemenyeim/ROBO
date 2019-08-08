@@ -175,7 +175,7 @@ if __name__ == '__main__':
     learning_rate = opt.lr/2 if opt.transfer else opt.lr
     dec = opt.decay if finetune else opt.decay/10
     transfers = ([3, 5, 8, 11] if opt.bn else [3, 5, 7, 9]) if opt.transfer else [0]
-    decays = [dec*100, dec*25, dec*10, dec*2.5, dec] if (finetune and not opt.transfer) else [dec]
+    decays = [dec*50, dec*2, dec*10, dec*4, dec] if (finetune and not opt.transfer) else [dec]
     if opt.singleDec:
         decays = [dec*20]
     halfRes = opt.hr
