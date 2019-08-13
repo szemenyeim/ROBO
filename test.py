@@ -23,10 +23,10 @@ if __name__ == '__main__':
     parser.add_argument("--n_cpu", type=int, default=4, help="number of cpu threads to use during batch generation")
     parser.add_argument("--img_size", type=int, default=(384,512), help="size of each image dimension")
     parser.add_argument("--transfer", help="Layers to truly train", action="store_true", default=False)
-    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
+    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=False)
     parser.add_argument("--bn", help="Use bottleneck", action="store_true", default=False)
-    parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=True)
-    parser.add_argument("--hr", help="Use half res", action="store_true", default=True)
+    parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=False)
+    parser.add_argument("--hr", help="Use half res", action="store_true", default=False)
     opt = parser.parse_args()
 
     cuda = torch.cuda.is_available()
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     weights_path = []
     if opt.transfer:
         weights_path = sorted(glob.glob(name + "T*.weights"),reverse=True)
-    else:
+    elif opt.finetune:
         weights_path = sorted(glob.glob(name + "*_*.weights"),reverse=True)
     weights_path += [name + ".weights"]
     if not opt.bn:
@@ -85,6 +85,8 @@ if __name__ == '__main__':
         # Get dataloader
         dataset = ListDataset(test_path, train=False, synth=opt.finetune, yu=opt.yu, img_size=img_size)
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
+        trdataset = ListDataset(test_path, train=True, synth=opt.finetune, yu=opt.yu, img_size=img_size)
+        trdataloader = torch.utils.data.DataLoader(trdataset, batch_size=opt.batch_size, shuffle=False, num_workers=opt.n_cpu)
 
         Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 

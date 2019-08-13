@@ -27,10 +27,10 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=1, help='size of the batches')
     parser.add_argument('--n_cpu', type=int, default=4, help='number of cpu threads to use during batch generation')
     parser.add_argument('--img_size', type=int, default=(384,512), help='size of each image dimension')
-    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=True)
+    parser.add_argument("--finetune", help="Finetuning", action="store_true", default=False)
     parser.add_argument("--bn", help="Use bottleneck", action="store_true", default=False)
     parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=False)
-    parser.add_argument("--hr", help="Use half res", action="store_true", default=True)
+    parser.add_argument("--hr", help="Use half res", action="store_true", default=False)
     opt = parser.parse_args()
     print(opt)
 
