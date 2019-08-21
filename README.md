@@ -12,13 +12,11 @@ This Repo contains the code for our submission for the RoboCup 2019 Symposium. I
 ## Dataset and Pretrained models
 The datasets contain images in YUV format, using 512x384 resultion. For every image, the annotations are found in a .txt file of the same name (YOLO format). You can download the dataset used from the following links: 
 
-- [Synthetic train](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Train.zip) 
-- [Synthetic test](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Test.zip) 
-- [Finetune](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Finetune.zip)
+- [Synthetic train](http://deeplearning.iit.bme.hu/ROBO/ROBO_Train.zip) 
+- [Synthetic test](http://deeplearning.iit.bme.hu/ROBO/ROBO_Test.zip) 
+- [Finetune](http://deeplearning.iit.bme.hu/ROBO/ROBO_Finetune.zip)
 
-The pretrained models are available from [this link](http://3dmr.iit.bme.hu/research/robocup/Datasets/checkpoints.zip).
-
-The [old finetune dataset](http://3dmr.iit.bme.hu/research/robocup/Datasets/ROBO_Finetune_old.zip) (without Sydney images) and [models](http://3dmr.iit.bme.hu/research/robocup/Datasets/checkpoints_old.zip) are also available.
+The pretrained models are available from [this link](http://deeplearning.iit.bme.hu/ROBO/checkpoints.zip).
 
 ## Train your own models
 1. To train your own models, first extract the dataset to a folder of your choice.
