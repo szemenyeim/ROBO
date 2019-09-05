@@ -127,6 +127,10 @@ class YOLOLayer(nn.Module):
             conf_mask_true = mask
             conf_mask_false = conf_mask - mask
 
+            mask = mask.bool()
+            conf_mask_false = conf_mask_false.bool()
+            conf_mask_true = conf_mask_true.bool()
+
             # Mask outputs to ignore non-existing objects
             loss_x = self.mse_loss(x[mask], tx[mask])
             loss_y = self.mse_loss(y[mask], ty[mask])

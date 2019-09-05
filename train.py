@@ -40,9 +40,6 @@ def train(epoch,epochs,bestLoss,indices = None):
 
     model.train()
 
-    if indices is None:
-        scheduler.step()
-
     bar = progressbar.ProgressBar(0, len(trainloader), redirect_stdout=False)
 
     for batch_i, (_, imgs, targets) in enumerate(trainloader):
@@ -108,6 +105,9 @@ def train(epoch,epochs,bestLoss,indices = None):
             precs[1] / float(len(trainloader)),
         )
     )
+
+    if indices is None:
+        scheduler.step()
 
     name = "bestFinetune" if finetune else "best"
     name +=  "2C" if opt.yu else ""
@@ -184,7 +184,7 @@ if __name__ == '__main__':
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
     img_size = (192,256) if halfRes else (384,512)
     weights_path = "checkpoints/best%s%s%s.weights" % ("2C" if opt.yu else "","BN" if opt.bn else "", "HR" if opt.hr else "")
-    n_cpu = 4
+    n_cpu = 12
     batch_size = 64
     channels = 2 if opt.yu else 3
     epochs = 125 if opt.transfer == 0 else 150
