@@ -7,7 +7,8 @@ import numpy as np
 import glob
 from PIL import Image
 import progressbar
-
+import cv2
+import os
 
 
 def load_classes(path):
@@ -177,27 +178,71 @@ def non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4):
 
     return output
 
-def pruneModel(params, ratio = 0.01):
+def get_immediate_subdirectories(a_dir):
+    return [name for name in os.listdir(a_dir)
+            if os.path.isdir(os.path.join(a_dir, name))]
+
+def labelProp(img_gr,prevImg,BBS):
+    of = cv2.calcOpticalFlowFarneback(prevImg, img_gr, None, 0.5, 15, 15, 7, 7, 1.5, 0)
+    for BB in BBS:
+        patch = of[BB[0][1]:BB[1][1], BB[0][0]:BB[1][0]]
+        meanX = np.mean(patch[:, :, 0])
+        meanY = np.mean(patch[:, :, 1])
+        xMin = max(0, int(round(BB[0][0] + meanX)))
+        yMin = max(0, int(round(BB[0][1] + meanY)))
+        xMax = min(img_gr.shape[1] - 1, int(round(BB[1][0] + meanX)))
+        yMax = min(img_gr.shape[0] - 1, int(round(BB[1][1] + meanY)))
+        BB[0] = (xMin, yMin)
+        BB[1] = (xMax, yMax)
+    return BBS
+
+def pruneModel(params, ratio = 0.01, glasso=False):
     i = 0
     indices = []
     for param in params:
         if param.dim() > 1:
-            thresh = torch.max(torch.abs(param)) * ratio
-            print("Pruned %f%% of the weights" % (
-            float(torch.sum(torch.abs(param) < thresh)) / float(torch.sum(param != 0)) * 100))
-            param[torch.abs(param) < thresh] = 0
-            indices.append(torch.abs(param) < thresh)
+            if glasso:
+                dim = param.size()
+                if dim.__len__() > 2:
+                    ind = torch.zeros_like(param)
+                    filtCnt = 0
+                    vals = param.pow(2).sum(dim=(1,2,3)).add(1e-8).pow(1 / 2.)
+                    thresh = torch.max(vals) * ratio
+                    for i,v in enumerate(vals):
+                        if v < thresh:
+                            filtCnt += 1
+                            param[i,:] = torch.zeros_like(param[i])
+                            ind[i,:] = torch.ones_like(ind[i])
+                    print("Pruned %f%% of the filters" % (filtCnt/vals.numel()*100))
+                    indices.append(ind.bool())
+                else:
+                    indices.append(torch.zeros_like(param).bool())
+            else:
+                thresh = torch.max(torch.abs(param)) * ratio
+                print("Pruned %f%% of the weights" % (
+                float(torch.sum(torch.abs(param) < thresh)) / float(torch.sum(param != 0)) * 100))
+                param[torch.abs(param) < thresh] = 0
+                indices.append(torch.abs(param) < thresh)
             i += 1
 
     return indices
 
-def count_zero_weights(model):
+def count_zero_weights(model,glasso=False):
     nonzeroWeights = 0
     totalWeights = 0
-    for param in model.parameters():
-        max = torch.max(torch.abs(param))
-        nonzeroWeights += (torch.abs(param) < max*0.01).sum().float()
-        totalWeights += param.numel()
+    if glasso:
+        for param in model.parameters():
+            dim = param.size()
+            if dim.__len__() > 2:
+                vals = param.pow(2).sum(dim=(1,2,3)).add(1e-8).pow(1/2.)
+                max = torch.max(vals)
+                nonzeroWeights += (vals < max * 0.01).sum().float()
+                totalWeights += vals.numel()
+    else:
+        for param in model.parameters():
+            max = torch.max(torch.abs(param))
+            nonzeroWeights += (torch.abs(param) < max*0.01).sum().float()
+            totalWeights += param.numel()
     return float(nonzeroWeights/totalWeights)
 
 def build_targets(

@@ -20,6 +20,18 @@ def l1reg(model):
         regularization_loss += torch.sum(torch.abs(param))
     return regularization_loss
 
+def add_dimension_glasso(var, dim=0):
+    return var.pow(2).sum(dim=dim).add(1e-8).pow(1/2.).sum()
+
+def gl1reg(model):
+    reg = 0
+    for param in model.parameters():
+        dim = param.size()
+        if dim.__len__() > 2:
+            reg += add_dimension_glasso(param, (1,2,3))
+            #reg += add_dimension_glasso(param, (0,2,3))
+    return reg
+
 def train(epoch,epochs,bestLoss,indices = None):
     #############
     ####TRAIN####
@@ -51,7 +63,7 @@ def train(epoch,epochs,bestLoss,indices = None):
         loss = model(imgs, targets)
         reg = Tensor([0.0])
         if indices is None:
-            reg = decay * l1reg(model)
+            reg = decay * regularize(model)
             loss += reg
 
         loss.backward()
@@ -82,7 +94,7 @@ def train(epoch,epochs,bestLoss,indices = None):
         precs[1] += model.recprec[3]
 
     bar.finish()
-    prune = count_zero_weights(model)
+    prune = count_zero_weights(model,glasso)
     print(
         "[Epoch Train %d/%d lr: %.4f][Losses: x %f, y %f, w %f, h %f, conf %f, reg %f, pruned %f, total %f, recall: %.5f (%.5f / %.5f), precision: %.5f (%.5f / %.5f)]"
         % (
@@ -136,7 +148,7 @@ def valid(epoch,epochs,bestLoss,pruned):
     model.eval()
 
     mAP, APs = computeAP(model,valloader,0.5,0.45,4,(384,512),False,32)
-    prune = count_zero_weights(model)
+    prune = count_zero_weights(model,glasso)
 
     name = "bestFinetune" if finetune else "best"
     name +=  "2C" if opt.yu else ""
@@ -169,6 +181,7 @@ if __name__ == '__main__':
     parser.add_argument("--yu", help="Use 2 channels", action="store_true", default=False)
     parser.add_argument("--hr", help="Use half res", action="store_true", default=False)
     parser.add_argument("--singleDec", help="Just use a single decay value", action="store_true", default=False)
+    parser.add_argument("--glasso", help="Use group lasso regularization", action="store_true", default=False)
     opt = parser.parse_args()
 
     finetune = opt.finetune
@@ -179,12 +192,16 @@ if __name__ == '__main__':
     if opt.singleDec:
         decays = [decays[0]]
     halfRes = opt.hr
+    glasso = opt.glasso
+    regularize = gl1reg if glasso else l1reg
+    if glasso:
+        decays = [d*100 for d in decays]
 
     classPath = "data/robo.names"
     data_config_path = "config/roboFinetune.data" if finetune else "config/robo.data"
     img_size = (192,256) if halfRes else (384,512)
     weights_path = "checkpoints/best%s%s%s.weights" % ("2C" if opt.yu else "","BN" if opt.bn else "", "HR" if opt.hr else "")
-    n_cpu = 12
+    n_cpu = 8
     batch_size = 64
     channels = 2 if opt.yu else 3
     epochs = 125 if opt.transfer == 0 else 150
@@ -258,7 +275,7 @@ if __name__ == '__main__':
             if finetune and (transfer == 0):
                 model.load_state_dict(torch.load("checkpoints/bestFinetune%s%s%s.weights" % ("2C" if opt.yu else "","BN" if opt.bn else "","HR" if opt.hr else "")))
                 with torch.no_grad():
-                    indices = pruneModel(model.parameters())
+                    indices = pruneModel(model.parameters(),glasso)
 
                 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/40)
                 print("Finetuning")
