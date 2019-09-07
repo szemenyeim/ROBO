@@ -1,6 +1,7 @@
 import glob
 import random
 import os
+import os.path as osp
 import numpy as np
 
 import torch
@@ -11,6 +12,27 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 import numbers
 import cv2
+import re
+
+def tryint(s):
+    try:
+        return int(s)
+    except:
+        return s
+
+def alphanum_key(s):
+    """ Turn a string into a list of string and number chunks.
+        "z23a" -> ["z", 23, "a"]
+    """
+    return [ tryint(c) for c in re.split('([0-9]+)', s) ]
+
+def my_collate(batch):
+    imgs,targets,cvimgs = zip(*batch)
+    return torch.cat(imgs),torch.cat(targets),cvimgs
+
+def get_immediate_subdirectories(a_dir):
+    return [name for name in os.listdir(a_dir)
+            if os.path.isdir(os.path.join(a_dir, name))]
 
 class RandomAffineCust(object):
     """Random affine transformation of the image keeping center invariant
@@ -261,3 +283,91 @@ class ColorJitter(object):
             img[1:] = torch.einsum('nm,mbc->nbc',mtx,img[1:])
 
         return img
+
+class LPDataSet(Dataset):
+    def __init__(self, root, img_size=(384,512), train=True, finetune = False, yu=False, len_seq = 2):
+        self.finetune = finetune
+        self.img_size = img_size
+        self.yu = yu
+        self.len_seq = len_seq
+        self.max_objects = 50
+        self.root = osp.join(root,"LabelProp")
+        self.split = "train" if train else "val"
+        self.resize = transforms.Resize(img_size)
+        self.mean = [0.34190056, 0.4833289,  0.48565758] if finetune else [0.36269532, 0.41144562, 0.282713]
+        self.std = [0.47421749, 0.13846053, 0.1714848] if finetune else [0.31111388, 0.21010718, 0.34060917]
+        self.normalize = transforms.Normalize(mean=self.mean,std=self.std)
+        self.images = []
+        self.labels = []
+        self.predictions = []
+
+
+        data_dir = osp.join(self.root,"Real" if finetune else "Synthetic")
+        data_dir = osp.join(data_dir, self.split)
+
+        for dir in get_immediate_subdirectories(data_dir):
+            currDir = osp.join(data_dir,dir)
+            img_dir = osp.join(currDir,"images")
+            images = []
+            for file in sorted(glob.glob1(img_dir, "*.png"), key=alphanum_key):
+                images.append(osp.join(img_dir, file))
+            self.images.append(images)
+            self.labels.append([path.replace('.png', '.txt').replace('.jpg', '.txt') for path in images])
+
+    def __len__(self):
+        length = 0
+        for imgs in self.images:
+            length += len(imgs) - self.len_seq + 1
+        return length
+
+    def __getitem__(self, index):
+        dirindex = 0
+        itemindex = index
+
+        #print index
+
+        for imgs in self.images:
+            #print(dirindex, itemindex, len(imgs))
+            if itemindex >= len(imgs) - self.len_seq + 1:
+                dirindex += 1
+                itemindex -= (len(imgs) - self.len_seq + 1)
+            else:
+                break
+
+        #print(dirindex, itemindex)
+        labels = []
+        imgs = []
+        cvimgs = []
+        for i in range(self.len_seq):
+            img_file = self.images[dirindex][itemindex+i]
+            label_file = self.labels[dirindex][itemindex+i].rstrip()
+
+            img = Image.open(img_file).convert('RGB')
+            label = np.loadtxt(label_file).reshape(-1, 5)
+            # Squeeze centers inside image
+            label[:, 1] = np.clip(label[:, 1], a_min=0, a_max = 0.999)
+            label[:, 2] = np.clip(label[:, 2], a_min=0, a_max = 0.999)
+
+            if self.img_size[0] != img.size[1] and self.img_size[1] != img.size[0]:
+                img = self.resize(img)
+
+            img_ten = cv2.cvtColor(np.array(img),cv2.COLOR_RGB2YUV)
+            img_ten = transforms.functional.to_tensor(img_ten).float()
+            img_ten = self.normalize(img_ten)
+            if self.yu:
+                img_ten[1] = img_ten[2] * 0.5 + img_ten[1] * 0.5
+                img_ten = img_ten[0:2]
+            img_ten = img_ten.unsqueeze(0)
+
+            filled_label = np.zeros((self.max_objects, 5))
+            if label is not None:
+                filled_label[range(len(label))[:self.max_objects]] = label[:self.max_objects]
+            filled_label = torch.from_numpy(filled_label).unsqueeze(0)
+
+            labels.append(filled_label)
+            imgs.append(img_ten)
+            cvimgs.append(cv2.resize(cv2.cvtColor(np.array(img),cv2.COLOR_RGB2GRAY),(160,120)))
+
+        imgs = torch.cat(imgs)
+        labels = torch.cat(labels)
+        return imgs, labels, cvimgs

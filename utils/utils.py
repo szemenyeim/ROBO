@@ -183,18 +183,28 @@ def get_immediate_subdirectories(a_dir):
             if os.path.isdir(os.path.join(a_dir, name))]
 
 def labelProp(img_gr,prevImg,BBS):
-    of = cv2.calcOpticalFlowFarneback(prevImg, img_gr, None, 0.5, 15, 15, 7, 7, 1.5, 0)
-    for BB in BBS:
-        patch = of[BB[0][1]:BB[1][1], BB[0][0]:BB[1][0]]
-        meanX = np.mean(patch[:, :, 0])
-        meanY = np.mean(patch[:, :, 1])
-        xMin = max(0, int(round(BB[0][0] + meanX)))
-        yMin = max(0, int(round(BB[0][1] + meanY)))
-        xMax = min(img_gr.shape[1] - 1, int(round(BB[1][0] + meanX)))
-        yMax = min(img_gr.shape[0] - 1, int(round(BB[1][1] + meanY)))
-        BB[0] = (xMin, yMin)
-        BB[1] = (xMax, yMax)
-    return BBS
+    of = cv2.calcOpticalFlowFarneback(prevImg, img_gr, None, pyr_scale=0.5,levels=2,winsize=15,iterations=2,poly_n=7,poly_sigma=1.5,flags=0)
+    scale = 4.0
+    ret = []
+    for classBB in BBS:
+        newClassBB = []
+        for BB in classBB:
+            xMin = max(0, int(BB[0]/scale))
+            yMin = max(0, int(BB[1]/scale))
+            xMax = min(img_gr.shape[1] - 1, int(math.ceil(BB[2]/scale)))
+            yMax = min(img_gr.shape[0] - 1, int(math.ceil(BB[3]/scale)))
+            patch = of[yMin:yMax, xMin:xMax]
+            meanX = np.mean(patch[:, :, 0])*scale
+            meanY = np.mean(patch[:, :, 1])*scale
+            newBB = []
+            newBB.append(max(0, int(round(BB[0] + meanX))))
+            newBB.append(max(0, int(round(BB[1] + meanY))))
+            newBB.append(min(img_gr.shape[1]*scale - 1, int(round(BB[2] + meanX))))
+            newBB.append(min(img_gr.shape[0]*scale - 1, int(round(BB[3] + meanY))))
+            newBB.append(BB[4])
+            newClassBB.append(newBB)
+        ret.append(newClassBB)
+    return ret
 
 def pruneModel(params, ratio = 0.01, glasso=False):
     i = 0
