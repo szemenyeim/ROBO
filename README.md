@@ -4,6 +4,8 @@ Robust Real-time Object Detection for the Nao Robots
 ## Introduction
 This Repo contains the code for our submission for the RoboCup 2019 Symposium. It allows you to train your own models, evaluate, or to use our pre-trained models. Some of the code is based on this excellent repo: https://github.com/eriklindernoren/PyTorch-YOLOv3
 
+The code and dataset for ROBO-UNet and its variants is found [here](https://github.com/szemenyeim/RoboCupVision).
+
 ## Requirements
 
 - PyTorch 1.0
