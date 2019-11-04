@@ -14,11 +14,11 @@ The code and dataset for ROBO-UNet and its variants is found [here](https://gith
 ## Dataset and Pretrained models
 The datasets contain images in YUV format, using 512x384 resultion. For every image, the annotations are found in a .txt file of the same name (YOLO format). You can download the dataset used from the following links: 
 
-- [Synthetic train](vm.ik.bme.hu:14390/ROBO/ROBO_Train.zip) 
-- [Synthetic test](vm.ik.bme.hu:14390/ROBO/ROBO_Test.zip) 
-- [Finetune](vm.ik.bme.hu:14390/ROBO/ROBO_Finetune.zip)
+- Synthetic train vm.ik.bme.hu:14390/ROBO/ROBO_Train.zip
+- Synthetic test vm.ik.bme.hu:14390/ROBO/ROBO_Test.zip
+- Finetune vm.ik.bme.hu:14390/ROBO/ROBO_Finetune.zip
 
-The pretrained models are available from [this link](vm.ik.bme.hu:14390/ROBO/checkpoints.zip).
+The pretrained models are available from vm.ik.bme.hu:14390/ROBO/checkpoints.zip
 
 ## Train your own models
 1. To train your own models, first extract the dataset to a folder of your choice.
