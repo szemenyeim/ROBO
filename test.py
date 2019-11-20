@@ -155,7 +155,6 @@ if __name__ == '__main__':
         print(path)
         model = ROBO(inch=channels,bn=opt.bn, halfRes=opt.hr)
         print(model.getParams())
-        exit(0)
         model.load_state_dict(torch.load(path,map_location={'cuda:0': 'cpu'}))
 
         print(count_zero_weights(model))
