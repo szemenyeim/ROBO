@@ -31,6 +31,9 @@ class Conv(nn.Module):
 
         return self.size*self.size*W*H*self.inch*self.ch*2 + (W*H*self.ch*4 if self.doBN else 0), W, H
 
+    def getParams(self):
+        return self.ch*(self.inch*self.size*self.size + 4 if self.doBN else 1)
+
 class YOLOLayer(nn.Module):
     """Detection layer"""
 
@@ -291,4 +294,10 @@ class ROBO(nn.Module):
         computations.append(H*W*128*10//2 * (2 if self.bn else 1))
 
         return computations
+
+    def getParams(self):
+        params = sum([layer.getParams() for layer in self.downPart if layer is not None])
+        params += 64*10*2 * (2 if self.bn else 1)
+        params += 128*10//2 * (2 if self.bn else 1)
+        return params
 
